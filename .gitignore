@@ -1,1 +1,4 @@
-.omc/
+.omc/*
+!.omc/state/
+.omc/state/*
+!.omc/state/team/
