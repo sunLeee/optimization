@@ -198,4 +198,4 @@ omc_run_team_cleanup(job_id)
 - [agents.md](./agents.md) — 에이전트 선택 가이드
 - [orchestration.md](./orchestration.md) — ralph/team/ultrawork 비교
 - [memory.md](./memory.md) — 세션 간 메모리 관리
-- [docs/design/ref/team-operations.md](../../design/ref/team-operations.md) — AW-001~010 규칙
+- [.claude/docs/team-operations.md](./team-operations.md) — AW-001~010 규칙

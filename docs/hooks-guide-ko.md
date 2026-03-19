@@ -94,7 +94,7 @@ Claude Code가 응답을 완료할 때마다 실행:
 [Stop Hook] 코드 작성 완료. /check-python-style 실행 권장
 ```
 
-- **정보성 알림만** (실제 강제 없음)
+- check-criteria.sh 점수 < 90% 시 exit 2 (강제 차단). `.claude/check-criteria.sh` 없으면 정보성 알림만.
 - 실제 강제는 pre-commit (`ruff` + `mypy`) — AW-010
 
 ---

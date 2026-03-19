@@ -18,7 +18,7 @@
 | `ccg` | "ccg", "tri-model", "claude codex gemini" | Codex+Gemini에 fan-out → Claude가 종합 | 3개 모델의 의견을 한번에 받아 비교할 때 |
 | `ultraqa` | autopilot에서 자동 활성화 | 테스트 → 검증 → 수정 반복 | QA 사이클이 필요한 구현 |
 | `omc-plan` | "plan this", "plan the" | 전략적 계획. `--consensus`, `--review` 지원 | 구현 전 계획 수립 |
-| `ralplan` | "ralplan", "consensus plan" | `/omc-plan --consensus` 별칭. Planner→Architect→Critic 합의 루프 | 되돌리기 어려운 설계 결정 전 (AW-009) |
+| `ralplan` | "ralplan", "consensus plan" | `/omc-plan --consensus` 별칭. Planner→Architect→Critic 합의 루프 | 되돌리기 어려운 설계 결정 전 (AW-008) |
 | `sciomc` | "sciomc" | 병렬 scientist agent로 종합 분석 | 데이터 분석, 연구 조사 |
 | `external-context` | — | document-specialist agent들이 웹 검색 | 외부 문서/라이브러리 참조가 필요할 때 |
 | `deepinit` | "deepinit" | 계층적 AGENTS.md로 코드베이스 깊은 초기화 | 새 프로젝트 시작 또는 large codebase 파악 |

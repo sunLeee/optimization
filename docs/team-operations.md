@@ -100,7 +100,7 @@ bash .claude/check-criteria.sh | grep -c '✅'       # ≥ 27
 | 도구 | 역할 | 강제 여부 |
 |------|------|----------|
 | pre-commit | ruff(79자) + mypy(strict) + bandit | commit 차단 (실제 강제) |
-| Stop hook | 정보성 알림 메시지 출력 | 알림만 (실제 강제 없음) |
+| Stop hook | check-criteria.sh 점수 < 90% 시 exit 2로 강제 차단 | 강제 (90% 미만 시 Stop 차단) |
 
 - `--no-verify` 사용 금지
 - pre-commit 설치: `pre-commit install` (clone 후 1회)
