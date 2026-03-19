@@ -1,0 +1,83 @@
+{
+  "enabledPlugins": {
+    "oh-my-claudecode@omc": true
+  },
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(ls:*)",
+      "Bash(git: *)",
+      "Bash(pytest:*)",
+      "Bash(ruff:*)"
+    ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "(?i)\\b(ulw|ultrawork|ralph|ralplan|autopilot|omc-teams|deepinit|ccg|sciomc|ultraqa)\\b",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); PROMPT=$(echo \"$INPUT\" | jq -r '.message // .prompt // \"\"' 2>/dev/null || echo \"$INPUT\"); KEYWORDS=$(echo \"$PROMPT\" | grep -oiE '\\b(ulw|ultrawork|ralph|ralplan|autopilot|omc-teams|deepinit|ccg|sciomc|ultraqa)\\b' | sort -u | tr '\\n' ',' | sed 's/,$//'); echo \"[OMC MAGIC KEYWORD] 감지: ${KEYWORDS:-알 수 없음}\"; echo '해당 skill을 Skill 도구로 invoke하십시오'"
+          }
+        ]
+      },
+      {
+        "matcher": "(?i)(?!.*(공유|알려줘|알고싶|현황|진행상황|설명해|언제|얼마나|어떻게|어디|뭐야|무엇|왜|상태))(^|\\s)(구현|implement|작성해|만들어|추가해|수정해|fix|add|create|build|refactor|개발|설계해|생성)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat); PROMPT=$(echo \"$INPUT\" | jq -r '.message // .prompt // \"\"' 2>/dev/null || echo \"$INPUT\"); DETECTED=$(echo \"$PROMPT\" | grep -oiE '(구현|implement|작성해|만들어|추가해|수정해|fix|add|create|build|refactor|개발|설계해|생성)' | head -1); HASH=$(pwd | cksum | awk '{print $1}'); MARKER=\"/tmp/.claude-task-${HASH}.lock\"; touch \"$MARKER\"; echo \"[TASK-DETECTED] 감지된 키워드: ${DETECTED:-알 수 없음}\"; echo ''; echo '=== 필수 워크플로우 (순서 엄수) ==='; echo ''; echo 'STEP 1. omc-teams 사전조사 (AW-003) — setup.md § 3 지시사항 작성 표준 준수'; echo 'STEP 2. Skill: oh-my-claudecode:ultrawork'; echo 'STEP 3. Skill: oh-my-claudecode:deep-interview'; echo 'STEP 4. Skill: oh-my-claudecode:ralplan'; echo ''; echo \"마커: $MARKER (Write/Edit 차단 중)\""
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "You are a task classifier. Analyze the user message and determine if it's requesting implementation work.\n\nRules:\n- TASK: creating files, writing/fixing/modifying code, implementing features, refactoring, building something\n- QUERY: asking questions, requesting explanations, status checks, reading/analyzing content\n\nUser message: $ARGUMENTS\n\nIf this is a TASK, respond with exactly:\n[AI-TASK-DETECTED] 프롬프트가 구현 요청으로 AI 분류됨.\nSTEP 1. omc-teams 사전조사 (AW-003)\nSTEP 2. Skill: oh-my-claudecode:ultrawork\nSTEP 3. Skill: oh-my-claudecode:deep-interview\nSTEP 4. Skill: oh-my-claudecode:ralplan\n\nIf this is a QUERY, respond with exactly: [QUERY] 조회 요청으로 분류됨. 워크플로우 불필요.",
+            "model": "claude-haiku-4-5-20251001",
+            "statusMessage": "태스크 여부 분류 중..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HASH=$(pwd | cksum | awk '{print $1}'); MARKER=\"/tmp/.claude-task-${HASH}.lock\"; if [ -f \"$MARKER\" ]; then echo '[BLOCKED: DEEP-INTERVIEW REQUIRED] Write/Edit 차단됨. 해제: /oh-my-claudecode:deep-interview 완료 또는 rm /tmp/.claude-task-*.lock'; exit 1; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "HASH=$(pwd | cksum | awk '{print $1}'); MARKER=\"/tmp/.claude-task-${HASH}.lock\"; [ -f \"$MARKER\" ] || exit 0; DI_FILE=$(ls .omc/state/sessions/*/deep-interview-state.json 2>/dev/null | head -1); [ -z \"$DI_FILE\" ] && exit 0; ACTIVE=$(jq -r '.active' \"$DI_FILE\" 2>/dev/null || echo 'true'); [ \"$ACTIVE\" = 'false' ] && rm -f \"$MARKER\" && echo '[DEEP-INTERVIEW COMPLETE] Write/Edit 차단 해제'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SCRIPT=\".claude/check-criteria.sh\"; if [ -f \"$SCRIPT\" ]; then SCORE=$(bash \"$SCRIPT\" --score 2>/dev/null); if [ -n \"$SCORE\" ] && [ \"$SCORE\" -lt 90 ]; then echo \"[QUALITY GATE FAILED] ${SCORE}% < 90% — 작업 계속 필요\"; echo \"bash .claude/check-criteria.sh 로 미달 항목 확인\"; exit 2; else echo \"[Stop Hook] 응답 완료. 구현 필수 스킬: /convention-python /check-anti-patterns /adversarial-review\"; fi; else echo \"[Stop Hook] 응답 완료. 코드 변경 시 /check-python-style 실행 권장\"; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
