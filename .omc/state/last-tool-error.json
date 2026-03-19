@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"git subtree add --prefix=claude-config git@github.com:sunLeee/claude-config.git main --squash 2>&1\",\"description\":\"Add claude-config as git subtree under claude-config/ prefix\"}",
+  "error": "Exit code 1\nfatal: working tree has modifications.  Cannot add.",
+  "timestamp": "2026-03-19T12:43:54.238Z",
+  "retry_count": 1
+}
