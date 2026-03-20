@@ -32,7 +32,8 @@ class SpeedSolution:
     """속도 최적화 결과."""
     speeds: dict[tuple[str, str], float]  # (from_job, to_job) → speed (knots)
     total_fuel: float                     # 총 연료 소비 (metric tons)
-    status: str                           # "optimal" | "infeasible" | "solver_error"
+    # "optimal" | "infeasible" | "solver_error"
+    status: str
 
 
 class EcoSpeedOptimizer:
@@ -87,13 +88,16 @@ class EcoSpeedOptimizer:
         """
         speeds = {arc: self.v_eco for arc in routes}
         total_fuel = 0.0  # 거리 미반영 초기값
-        return SpeedSolution(speeds=speeds, total_fuel=total_fuel, status="initial")
+        return SpeedSolution(
+            speeds=speeds, total_fuel=total_fuel, status="initial"
+        )
 
     def optimize(
         self,
         routes: list[tuple[str, str]],        # 활성 구간 (from, to)
         distances: dict[tuple[str, str], float],  # (from, to) → 거리 (nm)
-        time_budgets: dict[tuple[str, str], float] | None = None,  # 이동 허용 시간 (hours)
+        # 이동 허용 시간 (hours)
+        time_budgets: dict[tuple[str, str], float] | None = None,
     ) -> SpeedSolution:
         """CVXPY GP로 구간별 최적 속도 계산.
 
@@ -187,8 +191,14 @@ class EcoSpeedOptimizer:
             if arc not in speeds:
                 speeds[arc] = self.v_eco
 
-        total_fuel = float(fuel_terms.value) if fuel_terms.value is not None else 0.0
-        return SpeedSolution(speeds=speeds, total_fuel=total_fuel, status="optimal")
+        total_fuel = (
+            float(fuel_terms.value)
+            if fuel_terms.value is not None
+            else 0.0
+        )
+        return SpeedSolution(
+            speeds=speeds, total_fuel=total_fuel, status="optimal"
+        )
 
     def _fallback_eco_speed(
         self,
@@ -201,7 +211,9 @@ class EcoSpeedOptimizer:
             self.alpha * (self.v_eco ** self.gamma) * distances.get(arc, 0.0)
             for arc in routes
         )
-        return SpeedSolution(speeds=speeds, total_fuel=total_fuel, status="fallback")
+        return SpeedSolution(
+            speeds=speeds, total_fuel=total_fuel, status="fallback"
+        )
 
     def fuel_for_route(
         self,

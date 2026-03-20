@@ -25,7 +25,18 @@ import time
 from dataclasses import dataclass, field
 
 from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
-from libs.stochastic import PortState
+
+
+@dataclass
+class PortState:
+    """Rolling Horizon 재최적화 시 포트 현재 상태.
+
+    RollingHorizonOrchestrator.step()의 입력 타입.
+    """
+    current_time: float  # minutes from simulation start
+    vessel_positions: dict[str, tuple[float, float]] = field(default_factory=dict)
+    tug_assignments: dict[str, str | None] = field(default_factory=dict)  # tug_id -> vessel_id or None
+    berth_occupancies: dict[str, str | None] = field(default_factory=dict)  # berth_id -> vessel_id or None
 
 
 @dataclass

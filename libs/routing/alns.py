@@ -19,6 +19,9 @@ from __future__ import annotations
 
 import math
 import random
+import time
+import warnings
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -34,13 +37,16 @@ from libs.fuel.eco_speed import EcoSpeedOptimizer, SpeedSolution
 class RouteResult:
     """ALNS 풀이 결과."""
     assignments: list[SchedulingToRoutingSpec]
-    routes: dict[str, list[str]]             # tug_id → [DEPOT, job_id, ..., DEPOT]
+    # tug_id → [DEPOT, job_id, ..., DEPOT]
+    routes: dict[str, list[str]]
     arc_speeds: dict[tuple[str, str], float] # (from, to) → knots
     total_cost: float
     waiting_cost: float
     fuel_cost: float
     iterations: int
     converged: bool
+    solve_time_sec: float = 0.0
+    optimality_gap: float = 0.0              # ALNS heuristic → 0.0
 
 
 @dataclass
@@ -49,12 +55,55 @@ class ALNSConfig:
     max_iter: int = 200          # 최대 내부 반복 수
     max_outer_iter: int = 20     # eco-speed alternating 최대 횟수
     tol: float = 0.001           # 수렴 임계값 (상대 오차)
+    tol_window: int = 3          # oscillation 감지 window 크기
     temperature: float = 0.1     # SA 초기 온도 (acceptance)
     cooling: float = 0.995       # SA 냉각 비율
     destroy_fraction: float = 0.3  # 제거 비율 (Shaw 2019 권장)
     w1: float = 1.0              # 대기시간 가중치
     w2: float = 0.01             # 연료 가중치
     seed: int = 42               # 재현성 (AW-005)
+    # Adaptive Weight (Ropke & Pisinger 2006)
+    segment_size: int = 100      # 가중치 갱신 주기
+    rho: float = 0.1             # 학습률
+    # Shaw Destroy lambda (원논문 기본값; fit_shaw_lambdas()로 override)
+    shaw_lambda_d: float = 0.5   # 거리 가중치
+    shaw_lambda_t: float = 0.3   # 시간창 가중치
+    shaw_lambda_p: float = 0.2   # 우선순위 가중치
+    shaw_phi: float = 3.0        # randomness 지수
+
+
+# Adaptive Weight 점수 상수 (Ropke & Pisinger 2006)
+SCORE_NEW_BEST: int = 33     # σ1: 전체 최적해 갱신
+SCORE_BETTER_CURR: int = 9   # σ2: 현재해 개선
+SCORE_ACCEPTED: int = 3      # σ3: SA 수용 (개선 아님)
+SCORE_REJECTED: int = 0      # 기각
+
+
+@dataclass
+class OperatorStats:
+    """개별 연산자 성능 통계 (Adaptive Weight)."""
+    weight: float = 1.0
+    score_sum: float = 0.0
+    usage_count: int = 0
+
+    def record(self, score: int) -> None:
+        """사용 횟수 및 점수 누적."""
+        self.usage_count += 1
+        self.score_sum += score
+
+    def update_weight(self, rho: float) -> None:
+        """세그먼트 종료 시 가중치 갱신 후 초기화.
+
+        w ← (1-ρ)·w + ρ·(score_sum / usage_count)
+        사용 없으면 weight 유지.
+        """
+        if self.usage_count > 0:
+            self.weight = (
+                (1 - rho) * self.weight
+                + rho * (self.score_sum / self.usage_count)
+            )
+        self.score_sum = 0.0
+        self.usage_count = 0
 
 
 # ── 비용 함수 ─────────────────────────────────────────────────
@@ -179,6 +228,139 @@ def destroy_worst(
     return new_routes, removed
 
 
+def destroy_shaw(
+    routes: dict[str, list[str]],
+    windows: list[TimeWindowSpec],
+    fraction: float,
+    distances: dict[tuple[str, str], float],
+    rng: random.Random,
+    lambda_d: float = 0.5,
+    lambda_t: float = 0.3,
+    lambda_p: float = 0.2,
+    phi: float = 3.0,
+) -> tuple[dict[str, list[str]], list[str]]:
+    """D3: Shaw relatedness destroy (Shaw 1998).
+
+    relatedness(j*, j) =
+      λ_d·(d_{j*,j}/d_max) + λ_t·(|e_{j*}-e_j|/T)
+      + λ_p·(|p_{j*}-p_j|/P_max)
+    선택 확률 ∝ relatedness^phi (유사한 job 우선 제거).
+    O(n²).
+    """
+    wmap = {w.vessel_id: w for w in windows}
+    all_jobs = [j for route in routes.values() for j in route if j != DEPOT]
+    if not all_jobs:
+        return routes, []
+
+    n_remove = max(1, int(len(all_jobs) * fraction))
+
+    # 정규화 기준값
+    d_max = max(
+        (distances.get((i, j), 0.0)
+         for i in all_jobs for j in all_jobs if i != j),
+        default=1.0,
+    )
+    t_max = max((wmap[j].earliest_start for j in all_jobs), default=1.0) - \
+            min((wmap[j].earliest_start for j in all_jobs), default=0.0)
+    p_max = max((wmap[j].priority for j in all_jobs), default=1)
+    t_max = max(t_max, 1.0)
+
+    # seed job 무작위 선택
+    seed_job = rng.choice(all_jobs)
+    removed: list[str] = [seed_job]
+    remaining = [j for j in all_jobs if j != seed_job]
+
+    while len(removed) < n_remove and remaining:
+        last = removed[-1]
+        w_last = wmap[last]
+        # relatedness 계산
+        relatedness = []
+        for j in remaining:
+            w_j = wmap[j]
+            d_norm = distances.get((last, j), 0.0) / d_max
+            t_norm = abs(w_last.earliest_start - w_j.earliest_start) / t_max
+            p_norm = abs(w_last.priority - w_j.priority) / max(p_max, 1)
+            r = lambda_d * d_norm + lambda_t * t_norm + lambda_p * p_norm
+            relatedness.append(r)
+
+        # 확률적 선택: r^phi 가중
+        weights = [r ** phi for r in relatedness]
+        total_w = sum(weights)
+        if total_w < 1e-12:
+            chosen = rng.choice(remaining)
+        else:
+            cumulative = []
+            s = 0.0
+            for w in weights:
+                s += w / total_w
+                cumulative.append(s)
+            rand = rng.random()
+            chosen = remaining[-1]
+            for idx, c in enumerate(cumulative):
+                if rand <= c:
+                    chosen = remaining[idx]
+                    break
+
+        removed.append(chosen)
+        remaining.remove(chosen)
+
+    # 경로에서 제거
+    new_routes: dict[str, list[str]] = {}
+    removed_set = set(removed)
+    for tug_id, route in routes.items():
+        new_routes[tug_id] = [n for n in route if n not in removed_set]
+        if not new_routes[tug_id] or new_routes[tug_id][0] != DEPOT:
+            new_routes[tug_id] = [DEPOT] + new_routes[tug_id]
+        if new_routes[tug_id][-1] != DEPOT:
+            new_routes[tug_id].append(DEPOT)
+
+    return new_routes, removed
+
+
+def destroy_time_window(
+    routes: dict[str, list[str]],
+    windows: list[TimeWindowSpec],
+    fraction: float,
+    rng: random.Random,
+    window_width_min: float = 60.0,
+) -> tuple[dict[str, list[str]], list[str]]:
+    """D4: 혼잡 시간대 집중 제거.
+
+    무작위 시각 t* 선정, [t*-w/2, t*+w/2] 내 job 제거. O(n).
+    """
+    wmap = {w.vessel_id: w for w in windows}
+    all_jobs = [j for route in routes.values() for j in route if j != DEPOT]
+    if not all_jobs:
+        return routes, []
+
+    t_min = min(wmap[j].earliest_start for j in all_jobs)
+    t_max = max(wmap[j].latest_start for j in all_jobs)
+    t_star = rng.uniform(t_min, t_max)
+    half_w = window_width_min / 2.0
+
+    candidates = [
+        j for j in all_jobs
+        if t_star - half_w <= wmap[j].earliest_start <= t_star + half_w
+    ]
+    n_remove = max(1, int(len(all_jobs) * fraction))
+    removed = (
+        candidates[:n_remove]
+        if candidates
+        else rng.sample(all_jobs, min(1, len(all_jobs)))
+    )
+
+    removed_set = set(removed)
+    new_routes: dict[str, list[str]] = {}
+    for tug_id, route in routes.items():
+        new_routes[tug_id] = [n for n in route if n not in removed_set]
+        if not new_routes[tug_id] or new_routes[tug_id][0] != DEPOT:
+            new_routes[tug_id] = [DEPOT] + new_routes[tug_id]
+        if new_routes[tug_id][-1] != DEPOT:
+            new_routes[tug_id].append(DEPOT)
+
+    return new_routes, removed
+
+
 # ── Repair 연산자 ─────────────────────────────────────────────
 
 def repair_greedy_insert(
@@ -207,7 +389,9 @@ def repair_greedy_insert(
             for pos in range(1, len(route)):  # depot 이후 위치
                 # 삽입 후 비용 추정 (해당 tug 경로만)
                 candidate = route[:pos] + [job] + route[pos:]
-                cost = _estimate_route_cost(candidate, wmap, distances, speeds, cfg)
+                cost = _estimate_route_cost(
+                    candidate, wmap, distances, speeds, cfg
+                )
                 if cost < best_cost:
                     best_cost = cost
                     best_tug = tug_id
@@ -245,9 +429,75 @@ def _estimate_route_cost(
         if w:
             start = max(arrival, w.earliest_start)
             wait_h = max(0.0, start - w.earliest_start) / 60.0
-            cost += cfg.w1 * w.priority * wait_h + cfg.w2 * alpha * (v ** gamma) * d
+            cost += (
+                cfg.w1 * w.priority * wait_h
+                + cfg.w2 * alpha * (v ** gamma) * d
+            )
             current_time = start + w.service_duration
     return cost
+
+
+def repair_regret2_insert(
+    routes: dict[str, list[str]],
+    removed_jobs: list[str],
+    windows: list[TimeWindowSpec],
+    distances: dict[tuple[str, str], float],
+    speeds: dict[tuple[str, str], float],
+    cfg: ALNSConfig,
+    rng: random.Random,
+) -> dict[str, list[str]]:
+    """R2: Regret-2 삽입 (Potvin & Rousseau 1993).
+
+    regret[j] = c2[j] - c1[j]  (2등 삽입비용 - 1등 삽입비용)
+    regret 큰 순서로 삽입 → 기회비용 높은 job 우선 배치.
+    O(n²·m·log n).
+    """
+    result = {k: list(v) for k, v in routes.items()}
+    remaining = list(removed_jobs)
+
+    while remaining:
+        best_job = None
+        best_insert: tuple[str, int] | None = None
+        best_regret = -float("inf")
+
+        for job in remaining:
+            # 모든 (tug, position) 조합의 비용 계산
+            insertion_costs: list[tuple[float, str, int]] = []
+            for tug_id, route in result.items():
+                for pos in range(1, len(route)):
+                    candidate = route[:pos] + [job] + route[pos:]
+                    cost = _estimate_route_cost(
+                        candidate, {w.vessel_id: w for w in windows},
+                        distances, speeds, cfg
+                    )
+                    insertion_costs.append((cost, tug_id, pos))
+
+            if not insertion_costs:
+                continue
+
+            insertion_costs.sort(key=lambda x: x[0])
+            c1 = insertion_costs[0][0]
+            c2 = insertion_costs[1][0] if len(insertion_costs) > 1 else c1
+            regret = c2 - c1
+
+            if regret > best_regret:
+                best_regret = regret
+                best_job = job
+                _, best_tug, best_pos = insertion_costs[0]
+                best_insert = (best_tug, best_pos)
+
+        if best_job is None or best_insert is None:
+            # fallback: 무작위 삽입
+            job = rng.choice(remaining)
+            tug_id = rng.choice(list(result.keys()))
+            result[tug_id].insert(1, job)
+            remaining.remove(job)
+        else:
+            tug_id, pos = best_insert
+            result[tug_id].insert(pos, best_job)
+            remaining.remove(best_job)
+
+    return result
 
 
 # ── 초기해 생성 ───────────────────────────────────────────────
@@ -322,7 +572,9 @@ class ALNSWithSpeedOptimizer:
 
     def _build_distances(self) -> dict[tuple[str, str], float]:
         """구간별 거리 행렬 (해리, Haversine)."""
-        locs: dict[str, tuple[float, float]] = {DEPOT: list(self.berth_locations.values())[0]}
+        locs: dict[str, tuple[float, float]] = {
+            DEPOT: list(self.berth_locations.values())[0]
+        }
         for w in self.windows:
             locs[w.vessel_id] = self.berth_locations[w.berth_id]
 
@@ -330,7 +582,10 @@ class ALNSWithSpeedOptimizer:
         dist: dict[tuple[str, str], float] = {}
         for i in nodes:
             for j in nodes:
-                dist[(i, j)] = 0.0 if i == j else haversine_nm(locs[i], locs[j])
+                dist[(i, j)] = (
+                    0.0 if i == j
+                    else haversine_nm(locs[i], locs[j])
+                )
         return dist
 
     def _all_arcs(self, routes: dict[str, list[str]]) -> list[tuple[str, str]]:
@@ -341,12 +596,32 @@ class ALNSWithSpeedOptimizer:
                 arcs.append((route[i], route[i + 1]))
         return arcs
 
+    def _roulette_select(
+        self, stats: list[OperatorStats]
+    ) -> int:
+        """가중치 기반 roulette wheel 선택 → 인덱스 반환."""
+        total = sum(s.weight for s in stats)
+        if total < 1e-12:
+            return self._rng.randrange(len(stats))
+        rand = self._rng.random() * total
+        cumulative = 0.0
+        for idx, s in enumerate(stats):
+            cumulative += s.weight
+            if rand <= cumulative:
+                return idx
+        return len(stats) - 1
+
     def _inner_alns(
         self,
         routes: dict[str, list[str]],
         speeds: dict[tuple[str, str], float],
     ) -> dict[str, list[str]]:
-        """ALNS 내부 루프: Destroy → Repair → Accept (SA)."""
+        """ALNS 내부 루프: Destroy → Repair → Accept (SA) + Adaptive Weight.
+
+        Destroy 연산자: D1(random), D2(worst), D3(shaw), D4(time_window)
+        Repair 연산자:  R1(greedy), R2(regret2)
+        선택: Roulette wheel (segment_size마다 가중치 갱신)
+        """
         cfg = self.cfg
         current = {k: list(v) for k, v in routes.items()}
         current_cost, _, _ = compute_cost(
@@ -357,39 +632,86 @@ class ALNSWithSpeedOptimizer:
 
         temperature = cfg.temperature
 
-        for _ in range(cfg.max_iter):
-            # Destroy (adaptive: 50% random, 50% worst)
-            if self._rng.random() < 0.5:
+        # Adaptive Weight 통계 초기화 (D1~D4, R1~R2)
+        d_stats = [OperatorStats() for _ in range(4)]
+        r_stats = [OperatorStats() for _ in range(2)]
+
+        for iteration in range(cfg.max_iter):
+            # ── Destroy 선택 (roulette) ──
+            d_idx = self._roulette_select(d_stats)
+            if d_idx == 0:
                 destroyed, removed = destroy_random(
                     current, self.windows, cfg.destroy_fraction, self._rng
                 )
-            else:
+            elif d_idx == 1:
                 destroyed, removed = destroy_worst(
                     current, self.windows, cfg.destroy_fraction,
                     self._distances, speeds, cfg, self._rng
                 )
+            elif d_idx == 2:
+                destroyed, removed = destroy_shaw(
+                    current, self.windows, cfg.destroy_fraction,
+                    self._distances, self._rng,
+                    lambda_d=cfg.shaw_lambda_d,
+                    lambda_t=cfg.shaw_lambda_t,
+                    lambda_p=cfg.shaw_lambda_p,
+                    phi=cfg.shaw_phi,
+                )
+            else:
+                destroyed, removed = destroy_time_window(
+                    current, self.windows, cfg.destroy_fraction, self._rng
+                )
 
-            # Repair
-            repaired = repair_greedy_insert(
-                destroyed, removed, self.windows,
-                self._distances, speeds, cfg, self._rng
-            )
+            # ── Repair 선택 (roulette) ──
+            r_idx = self._roulette_select(r_stats)
+            if r_idx == 0:
+                repaired = repair_greedy_insert(
+                    destroyed, removed, self.windows,
+                    self._distances, speeds, cfg, self._rng
+                )
+            else:
+                repaired = repair_regret2_insert(
+                    destroyed, removed, self.windows,
+                    self._distances, speeds, cfg, self._rng
+                )
 
             new_cost, _, _ = compute_cost(
                 repaired, self.windows, self._distances, speeds, cfg
             )
 
-            # Simulated Annealing 수용
+            # ── SA 수용 및 점수 결정 ──
             delta = new_cost - current_cost
-            if delta < 0 or self._rng.random() < math.exp(-delta / max(temperature, 1e-10)):
+            accepted = (
+                delta < 0
+                or self._rng.random()
+                < math.exp(-delta / max(temperature, 1e-10))
+            )
+
+            if new_cost < best_cost:
+                score = SCORE_NEW_BEST
+                best = {k: list(v) for k, v in repaired.items()}
+                best_cost = new_cost
+            elif accepted and new_cost < current_cost:
+                score = SCORE_BETTER_CURR
+            elif accepted:
+                score = SCORE_ACCEPTED
+            else:
+                score = SCORE_REJECTED
+
+            if accepted:
                 current = repaired
                 current_cost = new_cost
 
-                if current_cost < best_cost:
-                    best = {k: list(v) for k, v in current.items()}
-                    best_cost = current_cost
-
+            d_stats[d_idx].record(score)
+            r_stats[r_idx].record(score)
             temperature *= cfg.cooling
+
+            # ── 세그먼트 종료: 가중치 갱신 ──
+            if (iteration + 1) % cfg.segment_size == 0:
+                for s in d_stats:
+                    s.update_weight(cfg.rho)
+                for s in r_stats:
+                    s.update_weight(cfg.rho)
 
         return best
 
@@ -414,6 +736,11 @@ class ALNSWithSpeedOptimizer:
         )
 
         converged = False
+        _t0 = time.perf_counter()
+        # window 평균 수렴 판단 (oscillation 완화)
+        cost_window: deque[float] = deque(maxlen=cfg.tol_window)
+        cost_window.append(prev_cost)
+
         for outer_iter in range(cfg.max_outer_iter):
             # ALNS 내부 루프 (speed 고정)
             routes = self._inner_alns(routes, speeds)
@@ -427,14 +754,30 @@ class ALNSWithSpeedOptimizer:
             new_cost, _, _ = compute_cost(
                 routes, self.windows, self._distances, speeds, cfg
             )
+            cost_window.append(new_cost)
 
-            # 수렴 체크 (상대 오차)
-            rel_change = abs(new_cost - prev_cost) / max(abs(prev_cost), 1e-10)
-            if rel_change < cfg.tol:
-                converged = True
-                break
+            # window 평균 수렴 체크
+            # (단일 비교 대신 window 평균으로 oscillation 완화)
+            if len(cost_window) >= cfg.tol_window:
+                avg_prev = sum(list(cost_window)[:-1]) / (len(cost_window) - 1)
+                rel_change = (
+                    abs(new_cost - avg_prev) / max(abs(avg_prev), 1e-10)
+                )
+                if rel_change < cfg.tol:
+                    converged = True
+                    break
 
             prev_cost = new_cost
+
+        _solve_time = time.perf_counter() - _t0
+        if not converged:
+            warnings.warn(
+                f"ALNSWithSpeedOptimizer: "
+                f"{cfg.max_outer_iter}회 outer iteration 후 "
+                f"수렴 미달 (마지막 cost={prev_cost:.4f}). "
+                "converged=False로 RouteResult 반환.",
+                stacklevel=2,
+            )
 
         # 최종 비용 계산
         total_cost, waiting_cost, fuel_cost = compute_cost(
@@ -453,6 +796,7 @@ class ALNSWithSpeedOptimizer:
             fuel_cost=fuel_cost,
             iterations=outer_iter + 1,
             converged=converged,
+            solve_time_sec=_solve_time,
         )
 
     def _compute_time_budgets(

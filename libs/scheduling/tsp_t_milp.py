@@ -17,13 +17,13 @@ Pyomo + HiGHS 기반 예인선 스케줄링 문제 (Tier 1, n < 10).
     d_j    ≥ 0:    job j의 대기 보조변수 (linearization)
 
   제약:
-    (1) Σ_k y_j_k = 1                        각 job 정확히 하나의 예인선
+    (1) Σ_k y_j_k = 1              각 job 정확히 하나의 예인선
     (2) Σ_i x_ij_k = y_j_k                   흐름 보존 (in)
         Σ_j x_ij_k = y_j_k                   흐름 보존 (out)
-    (3a) s_j_k >= e_j * y_j_k               시간창 하한 (eta_j = earliest_start)
+    (3a) s_j_k >= e_j * y_j_k      시간창 하한 (eta_j = earliest_start)
     (3b) s_j_k <= l_j * y_j_k + M*(1-y_j_k) 시간창 상한
     (3c) s_j_k <= M * y_j_k                 비배정 시 s=0 강제
-    (3d) d_j >= Σ_k s_j_k - eta_j           대기 보조변수 하한 (linearization)
+    (3d) d_j >= Σ_k s_j_k - eta_j  대기 보조변수 하한 (linearization)
     (4)  s_j_k >= s_i_k + service_i + travel(i→j) - M*(1-x_ij_k) (순서)
     (5)  d_j >= 0                            비음수 (NonNegativeReals)
     (6)  d_j <= M * Σ_k y_j_k               서비스 안받는 job d=0 강제
@@ -33,6 +33,7 @@ Pyomo + HiGHS 기반 예인선 스케줄링 문제 (Tier 1, n < 10).
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -99,7 +100,9 @@ class TugScheduleModel:
         time_limit_sec: int = 60,
     ) -> None:
         if not _HAS_PYOMO:
-            raise ImportError("pyomo를 설치하세요: uv add pyomo>=6.7 highspy>=1.7")
+            raise ImportError(
+                "pyomo를 설치하세요: uv add pyomo>=6.7 highspy>=1.7"
+            )
 
         self.windows = windows
         self.tug_fleet = tug_fleet
@@ -111,14 +114,18 @@ class TugScheduleModel:
 
         # 인덱스 준비
         self._job_ids: list[str] = [w.vessel_id for w in windows]
-        self._window_map: dict[str, TimeWindowSpec] = {w.vessel_id: w for w in windows}
+        self._window_map: dict[str, TimeWindowSpec] = {
+            w.vessel_id: w for w in windows
+        }
         self._nodes: list[str] = [DEPOT] + self._job_ids
         self._M: float = _compute_big_m(windows)
 
         # 거리 행렬 (해리): depot→job, job→job
-        self._dist: dict[tuple[str, str], float] = self._build_distance_matrix()
+        self._dist: dict[tuple[str, str], float] = (
+            self._build_distance_matrix()
+        )
 
-    # ── 거리 행렬 ──────────────────────────────────────────────
+    # ── 거리 행렬 ──────────────────────────────
     def _build_distance_matrix(self) -> dict[tuple[str, str], float]:
         dist: dict[tuple[str, str], float] = {}
         # depot 위치: 첫 번째 선석 위치로 대리
@@ -136,13 +143,14 @@ class TugScheduleModel:
                 )
         return dist
 
-    # ── 모델 빌드 ──────────────────────────────────────────────
+    # ── 모델 빌드 ──────────────────────────────
     def _build_model(self) -> Any:
         """Pyomo ConcreteModel 생성.
 
         제약 8종:
         (1) 배정, (2) 흐름보존, (3a/3b/3c) 시간창,
-        (3d) 대기 선형화 하한, (4) 순서, (5) 비음수, (6) 보조변수 상한
+        (3d) 대기 선형화 하한, (4) 순서,
+        (5) 비음수, (6) 보조변수 상한
         """
         m = pyo.ConcreteModel()
 
@@ -160,9 +168,11 @@ class TugScheduleModel:
 
         # ── 결정 변수 ──
         m.x = pyo.Var(N, N, K, domain=pyo.Binary)       # arc
-        m.s = pyo.Var(J, K, domain=pyo.NonNegativeReals) # 시작 시간 (minutes)
+        # 시작 시간 (minutes)
+        m.s = pyo.Var(J, K, domain=pyo.NonNegativeReals)
         m.y = pyo.Var(J, K, domain=pyo.Binary)           # 배정 여부
-        m.d = pyo.Var(J, domain=pyo.NonNegativeReals)    # 대기 보조변수 (minutes)
+        # 대기 보조변수 (minutes)
+        m.d = pyo.Var(J, domain=pyo.NonNegativeReals)
 
         # ── 목적함수 (다목적 가중합) ──
         # eta_j = earliest_start_j (Step 1: 속도 고정, 연료 선형)
@@ -206,7 +216,11 @@ class TugScheduleModel:
 
         # ── 제약 (3b): 시간창 상한 ──
         def c3b_ub(m, j, k):
-            return m.s[j, k] <= wmap[j].latest_start * m.y[j, k] + M * (1 - m.y[j, k])
+            return (
+                m.s[j, k]
+                <= wmap[j].latest_start * m.y[j, k]
+                + M * (1 - m.y[j, k])
+            )
         m.c3b = pyo.Constraint(J, K, rule=c3b_ub)
 
         # ── 제약 (3c): 비배정 시 s=0 강제 ──
@@ -227,7 +241,8 @@ class TugScheduleModel:
         def c4_sequence(m, i, j, k):
             if i == j or i == DEPOT:
                 return pyo.Constraint.Skip
-            travel_min = dist[(i, j)] / speed_kn * 60.0  # 해리/kn → hours → minutes
+            # 해리/kn → hours → minutes
+            travel_min = dist[(i, j)] / speed_kn * 60.0
             return (
                 m.s[j, k] >= m.s[i, k] + wmap[i].service_duration + travel_min
                 - M * (1 - m.x[i, j, k])
@@ -241,7 +256,7 @@ class TugScheduleModel:
 
         return m
 
-    # ── 풀이 ──────────────────────────────────────────────────
+    # ── 풀이 ────────────────────────────────────
     def solve(self) -> SolverResult:
         """MILP 풀이 후 SchedulingToRoutingSpec 리스트 반환.
 
@@ -259,6 +274,7 @@ class TugScheduleModel:
 
         results = None
         solved = False
+        _t0 = time.perf_counter()
         try:
             # appsi_highs: 구버전 스타일 API (자동 로드)
             results = solver.solve(
@@ -271,9 +287,13 @@ class TugScheduleModel:
             solved = True
         except Exception:
             pass
+        _solve_time_sec = time.perf_counter() - _t0
 
         try:
-            status = f"{results.solver.status}/{results.solver.termination_condition}"
+            status = (
+                f"{results.solver.status}"
+                f"/{results.solver.termination_condition}"
+            )
         except Exception:
             status = "ok/optimal" if solved else "infeasible/infeasible"
         termination = "optimal" if solved else "infeasible"
@@ -282,7 +302,9 @@ class TugScheduleModel:
         gap = 0.0
         try:
             ub = pyo.value(model.obj)
-            lb = getattr(getattr(results, "problem", None), "lower_bound", None)
+            lb = getattr(
+                getattr(results, "problem", None), "lower_bound", None
+            )
             if ub > 0 and lb is not None:
                 gap = abs(ub - lb) / max(abs(ub), 1e-10)
         except Exception:
@@ -323,7 +345,8 @@ class TugScheduleModel:
         except Exception:
             pass  # infeasible 시 빈 리스트
 
-        # MILP 변수 미로드 시 그리디 폴백 (Pyomo 호환성 이슈 대비)
+        # MILP 변수 미로드 시 그리디 폴백
+        # (Pyomo 호환성 이슈 대비)
         if not assignments and solved:
             tug_free = {k: 0.0 for k in K}
             sorted_jobs = sorted(J, key=lambda j: wmap[j].earliest_start)
@@ -362,5 +385,5 @@ class TugScheduleModel:
             fuel_cost=fuel,
             optimality_gap=gap,
             solver_status=f"{status}/{termination}",
-            solve_time_sec=getattr(getattr(results, "solver", None), "wallclock_time", None) or 0.0,
+            solve_time_sec=_solve_time_sec,
         )

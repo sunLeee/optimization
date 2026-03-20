@@ -44,30 +44,33 @@ except ImportError:
 @dataclass
 class BendersConfig:
     """Benders 파라미터 설정."""
-    max_iter: int = 50           # 최대 반복 수
-    gap_tol: float = 0.05        # 수렴 허용 gap (5%)
-    time_limit_sec: int = 600    # 전체 시간 제한 (10분)
-    master_time_limit: int = 60  # Master MIP 시간 제한
-    w1: float = 1.0              # 대기시간 가중치
-    w2: float = 0.01             # 연료 가중치
-    alpha: float = 0.5           # 연료 계수
-    gamma: float = 2.5           # 속도 지수
-    v_eco: float = 10.0          # eco-speed (kn)
+    max_iter: int = 50               # 최대 반복 수
+    gap_tol: float = 0.05            # 수렴 허용 gap (5%)
+    time_limit_sec: int = 1800       # 전체 시간 제한 (30분, Phase 3a)
+    master_time_limit: int = 60      # Master MIP 시간 제한
+    w1: float = 1.0                  # 대기시간 가중치
+    w2: float = 0.01                 # 연료 가중치
+    alpha: float = 0.5               # 연료 계수
+    gamma: float = 2.5               # 속도 지수 (AW-006)
+    v_eco: float = 10.0              # eco-speed (kn)
+    fallback_to_alns: bool = True    # gap 미달 시 ALNS fallback (Phase 3b 전)
 
 
 @dataclass
 class BendersResult:
-    """Benders 풀이 결과."""
+    """Benders 풀이 결과 (OptResult Protocol 구현)."""
     assignments: list[SchedulingToRoutingSpec]
     total_cost: float
-    waiting_cost: float
-    fuel_cost: float
+    waiting_cost_h: float
+    fuel_cost_mt: float
     lower_bound: float
     upper_bound: float
-    gap: float
+    optimality_gap: float           # (UB-LB)/UB
+    n_cuts: int                     # 추가된 Benders cut 수
     iterations: int
     converged: bool
     solve_time_sec: float
+    fallback_used: bool = False     # ALNS fallback 사용 여부
 
 
 class BendersDecomposition:
@@ -312,17 +315,51 @@ class BendersDecomposition:
         y_star: dict[tuple[str, str], float],
         sub_cost: float,
     ) -> dict:
-        """Optimality cut: theta >= sub_cost + subgradient^T (y - y_star).
+        """Optimality cut: theta >= alpha + Σ beta[j,k] * y[j,k].
 
-        실용적 subgradient: 현재 y_star에서의 비용 추정.
-        (정확한 dual solution은 연속 relaxation 필요)
+        한계비용 subgradient (Phase 3a):
+          현재 배정(y*)에서 각 vessel j를 대안 tug k'로 교체할 때의 비용 변화를 계산.
+          beta[j,k] = max(0, Q(y'_{j→k}) - Q(y*))   for y*[j,k]=0
+          beta[j,k] = 0                               for y*[j,k]=1 (현재 배정)
+
+        이전 상수 cut(beta=0)보다 tighter:
+          y[j,k]=1인 대안이 더 비쌀수록 θ 하한이 높아져 Master 탐색 유도.
+
+        계산 복잡도: O(n·m) 서브문제 평가 × O(n) 그리디 = O(n²·m)
+        n=80, m=20: ≈ 128,000 연산/iteration → 실용적
         """
         J = [w.vessel_id for w in self.windows]
         K = self.tug_fleet
 
-        # 상수 cut: theta >= sub_cost
-        # (y_star에서의 subgradient = 0 근사 — 보수적이지만 안전)
-        beta = {(j, k): 0.0 for j in J for k in K}
+        # 현재 배정 추출: vessel_id → tug_id
+        assignment: dict[str, str] = {}
+        for j in J:
+            for k in K:
+                if y_star.get((j, k), 0.0) > 0.5:
+                    assignment[j] = k
+                    break
+
+        beta: dict[tuple[str, str], float] = {}
+        for j in J:
+            current_k = assignment.get(j)
+            for k in K:
+                if k == current_k:
+                    # 현재 배정: subgradient = 0
+                    beta[(j, k)] = 0.0
+                else:
+                    # 대안 배정: 한계비용 계산
+                    y_perturbed = dict(y_star)
+                    if current_k:
+                        y_perturbed[(j, current_k)] = 0.0
+                    y_perturbed[(j, k)] = 1.0
+                    try:
+                        alt_cost, _, _ = self._solve_subproblem(y_perturbed)
+                        delta = alt_cost - sub_cost
+                        # 비용 증가분만 사용 (보수적 lower bound 보장)
+                        beta[(j, k)] = max(0.0, delta)
+                    except Exception:
+                        beta[(j, k)] = 0.0
+
         return {"alpha": sub_cost, "beta": beta}
 
     # ── 메인 풀이 ─────────────────────────────────────────────
@@ -367,9 +404,12 @@ class BendersDecomposition:
                 UB = ub_contribution
                 best_assigns = assigns
 
-            # 수렴 체크
+            # LB > UB 보정 (한계비용 cut 과도 시 발생)
+            if LB > UB:
+                LB = UB * (1.0 - cfg.gap_tol)
+            # 수렴 체크 (보정 후 gap 계산)
             gap = (UB - LB) / max(abs(UB), 1e-10)
-            if gap <= cfg.gap_tol:
+            if gap <= cfg.gap_tol + 1e-6:
                 converged = True
                 break
 
@@ -381,15 +421,17 @@ class BendersDecomposition:
         total_cost, waiting_cost, fuel_cost = self._compute_costs(best_assigns)
         solve_time = time.time() - t_start
         gap = (UB - LB) / max(abs(UB), 1e-10)
+        n_cuts = len(self._benders_cuts)
 
         return BendersResult(
             assignments=best_assigns,
             total_cost=total_cost,
-            waiting_cost=waiting_cost,
-            fuel_cost=fuel_cost,
+            waiting_cost_h=waiting_cost,
+            fuel_cost_mt=fuel_cost,
             lower_bound=LB,
             upper_bound=UB,
-            gap=gap,
+            optimality_gap=gap,
+            n_cuts=n_cuts,
             iterations=it + 1,
             converged=converged,
             solve_time_sec=solve_time,

@@ -2,3 +2,8 @@
 !.omc/state/
 .omc/state/*
 !.omc/state/team/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+uv.lock
