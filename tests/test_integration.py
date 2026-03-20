@@ -99,3 +99,17 @@ def test_end_to_end_pipeline(berth_locs, tug_fleet):
     rho_result = rho.run(simulate_until_h=24.0)
     assert len(rho_result.total_assignments) == len(TIME_WINDOWS)
     print(f"MILP cost: {milp_result.total_cost:.4f}, RHO cost: {rho_result.total_cost:.4f}")
+
+
+def test_multi_tug_integration(berth_locs, tug_fleet):
+    """멀티-예인선 배정이 SchedulingToRoutingSpec으로 변환."""
+    from libs.scheduling.multi_tug import assign_multi_tug_greedy, to_scheduling_specs
+    required = {w.vessel_id: (2 if int(w.vessel_id) == 0 else 1) for w in TIME_WINDOWS}
+    assignments = assign_multi_tug_greedy(TIME_WINDOWS, tug_fleet, required)
+    specs = to_scheduling_specs(assignments, TIME_WINDOWS, berth_locs)
+    # V0는 2개 예인선 → 2개 spec
+    v0_specs = [s for s in specs if s.vessel_id == "0"]
+    assert len(v0_specs) == 2, f"V0 expected 2 tugs, got {len(v0_specs)}"
+    # 동기화: 같은 시작 시간
+    assert v0_specs[0].scheduled_start == v0_specs[1].scheduled_start
+    print(f"멀티-예인선 통합: 총 {len(specs)} specs (5선박, V0=2예인선)")

@@ -151,6 +151,10 @@ libs/
 - [x] ralplan 합의 완료 (Planner→Architect→Critic 3회 루프, APPROVE)
 - [x] deep-interview 완료 (5라운드, 모호도 15%)
 - [x] libs/ 모듈 구조 생성
-- [ ] Pyomo+HiGHS TSP-T 프로토타입 구현 (Phase 2)
-- [ ] ALNS 알고리즘 구현 (Phase 3)
-- [ ] 검증 및 벤치마크 (Phase 4)
+- [x] 최적화 라이브러리 선정 (Pyomo+HiGHS)
+- [x] 수학적 formulation 확정 (TSP-T MILP)
+- [x] 알고리즘 구현 완료 (Step 1~4)
+- [x] Phase 3: 대규모 벤치마크 (n=50/75 ALNS)
+- [x] Phase 3: 멀티-예인선 배정 구현
+- [x] Phase 3: AIS 데이터 처리 모듈
+- [ ] Phase 3: 대시보드 고도화 (진행 중)
