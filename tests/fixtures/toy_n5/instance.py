@@ -43,7 +43,9 @@ TIME_WINDOWS = [
 
 # ── 기대 결과 (논문 벤치마크 ±1% 허용) ───────────────────────
 EXPECTED = {
-    "total_waiting_cost": None,  # Step 1 구현 후 채움
+    "total_waiting_cost": 0.0,   # HiGHS optimal: 0h 대기 (SC-1 기준값)
+    "total_cost": 0.0013,        # w1=1.0, w2=0.01, alpha=0.5 기준
+    "optimality_gap": 0.0,       # Gap=0% (optimal)
     "solver": "HiGHS",
     "gamma": 2.5,
     "n_vessels": 5,
