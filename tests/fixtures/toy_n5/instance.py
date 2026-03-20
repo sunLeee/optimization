@@ -34,11 +34,11 @@ TUGBOATS = [
 # 이 픽스처에서는 BAP를 사전 결정 (간단 배정):
 # 선박 0,2,4 → B0 / 선박 1,3 → B1
 TIME_WINDOWS = [
-    TimeWindowSpec("0", "B0", earliest_start=1.0*60, latest_start=3.0*60, service_duration=3.0*60),
-    TimeWindowSpec("1", "B1", earliest_start=2.5*60, latest_start=5.0*60, service_duration=4.0*60),
-    TimeWindowSpec("2", "B0", earliest_start=7.0*60, latest_start=9.0*60, service_duration=2.5*60),
-    TimeWindowSpec("3", "B1", earliest_start=11.0*60, latest_start=13.0*60, service_duration=3.5*60),
-    TimeWindowSpec("4", "B0", earliest_start=14.0*60, latest_start=16.0*60, service_duration=2.0*60),
+    TimeWindowSpec("0", "B0", earliest_start=1.0*60, latest_start=3.0*60, service_duration=3.0*60, priority=2),
+    TimeWindowSpec("1", "B1", earliest_start=2.5*60, latest_start=5.0*60, service_duration=4.0*60, priority=1),
+    TimeWindowSpec("2", "B0", earliest_start=7.0*60, latest_start=9.0*60, service_duration=2.5*60, priority=3),
+    TimeWindowSpec("3", "B1", earliest_start=11.0*60, latest_start=13.0*60, service_duration=3.5*60, priority=1),
+    TimeWindowSpec("4", "B0", earliest_start=14.0*60, latest_start=16.0*60, service_duration=2.0*60, priority=2),
 ]
 
 # ── 기대 결과 (논문 벤치마크 ±1% 허용) ───────────────────────
