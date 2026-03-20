@@ -40,7 +40,7 @@
           {
             "type": "prompt",
             "prompt": "You are a task classifier. Analyze the user message and determine if it's requesting implementation work.\n\nRules:\n- TASK: creating files, writing/fixing/modifying code, implementing features, refactoring, building something\n- QUERY: asking questions, requesting explanations, status checks, reading/analyzing content\n\nUser message: $ARGUMENTS\n\nIf this is a TASK, respond with exactly:\n[AI-TASK-DETECTED] 프롬프트가 구현 요청으로 AI 분류됨.\nSTEP 1. omc-teams 사전조사 (AW-003)\nSTEP 2. Skill: oh-my-claudecode:ultrawork\nSTEP 3. Skill: oh-my-claudecode:deep-interview\nSTEP 4. Skill: oh-my-claudecode:ralplan\n\nIf this is a QUERY, respond with exactly: [QUERY] 조회 요청으로 분류됨. 워크플로우 불필요.",
-            "model": "claude-haiku-4-5-20251001",
+            "model": "claude-haiku-4-5-20251001[1m]",
             "statusMessage": "태스크 여부 분류 중..."
           }
         ]

@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# check-criteria.sh — claude-config 품질 종료 조건 (AW-008)
+# check-criteria.sh — 품질 종료 조건 오케스트레이터 (AW-008)
 # 3-agent 합산: Codex(10) + Gemini(10) + Claude(10) = 30개 정량 기준
 # 사용법: bash .claude/check-criteria.sh
 
 pass=0; total=0
 
 # --score 플래그: 숫자만 출력하고 종료
-_SCORE_ONLY=false
-if [ "$1" = "--score" ]; then
-  _SCORE_ONLY=true
-fi
+# --counts 플래그: "pass total" 형식으로 출력
+_SCORE_ONLY=false; _COUNTS_ONLY=false
+case "$1" in
+  --score) _SCORE_ONLY=true ;;
+  --counts) _COUNTS_ONLY=true ;;
+esac
 
 chk() {
   local id="$1" desc="$2" cmd="$3" op="$4" target="$5"
@@ -25,8 +27,9 @@ chk() {
       || echo "❌ [$id] $desc ($val vs $op$target)"
 }
 
-# --score 모드에서는 체크 출력 억제
+# --score / --counts 모드에서는 체크 출력 억제
 $_SCORE_ONLY && exec 3>&1 1>/dev/null
+$_COUNTS_ONLY && exec 3>&1 1>/dev/null
 
 echo "=== Codex: 코드/구조 품질 ==="
 chk COD-01 "skill 수" "find .claude/skills -name SKILL.md | wc -l | tr -d ' '" ">=" 128
@@ -74,6 +77,15 @@ chk PYQ-03 "ruff line-length=79 설정" "grep -c 'line-length = 79' pyproject.to
 chk PYQ-04 "mypy strict 설정" "grep -c 'strict = true' pyproject.toml 2>/dev/null || echo 0" ">=" "1"
 chk PYQ-05 "onboarding.md 존재" "test -f .claude/docs/onboarding.md && echo 0 || echo 1" "=" "0"
 
+# project-criteria.sh가 있으면 추가 체크 실행
+_PROJECT_CRITERIA=".claude/project-criteria.sh"
+if [ -f "$_PROJECT_CRITERIA" ] && ! $_SCORE_ONLY && ! $_COUNTS_ONLY; then
+  echo ""
+  bash "$_PROJECT_CRITERIA"
+fi
+
+# --counts 또는 --score 모드에서 project-criteria는 별도 스크립트
+
 pct=$((pass * 100 / total))
 
 if $_SCORE_ONLY; then
@@ -82,7 +94,13 @@ if $_SCORE_ONLY; then
   exit 0
 fi
 
+if $_COUNTS_ONLY; then
+  exec 1>&3 3>&-
+  echo "$pass $total"
+  exit 0
+fi
+
 echo ""
-echo "=== 총점: $pass/$total ($pct%) ==="
+echo "=== 총점 (프로젝트 기준): $pass/$total ($pct%) ==="
 [ "$pct" -ge 90 ] && echo "✅ 종료 조건 달성" || echo "❌ 미달 — 계속 작업"
 [ "$pct" -ge 90 ] && exit 0 || exit 1

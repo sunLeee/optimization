@@ -48,7 +48,7 @@ fi
 # 2. tmux 설정 — 권장 레이아웃 (.tmux.conf)
 # ─────────────────────────────────────────────
 TMUX_CONF="$HOME/.tmux.conf"
-LAYOUT_MARKER="# claude-config: omc-teams layout"
+LAYOUT_MARKER="# omc-teams: recommended layout"
 
 info "tmux pane 레이아웃 설정 확인..."
 if grep -q "$LAYOUT_MARKER" "$TMUX_CONF" 2>/dev/null; then
@@ -56,9 +56,10 @@ if grep -q "$LAYOUT_MARKER" "$TMUX_CONF" 2>/dev/null; then
 else
   cat >> "$TMUX_CONF" << 'EOF'
 
-# claude-config: omc-teams layout
+# omc-teams: recommended layout
 # 메인 좌 2/3 + worker 우 1/3 (세로 균등 분할)
 set-option -g main-pane-width 67%
+set-hook -g after-split-window 'select-layout main-vertical'
 bind-key M select-layout main-vertical
 EOF
   tmux source-file "$TMUX_CONF" 2>/dev/null || true
