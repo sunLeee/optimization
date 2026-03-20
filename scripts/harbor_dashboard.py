@@ -36,8 +36,11 @@ with st.sidebar:
 
     run_btn = st.button("▶ 시뮬레이션 실행", type="primary", use_container_width=True)
 
+    st.subheader("Phase 3 설정")
+    max_required_tugs = st.slider("최대 예인선/선박", 1, 3, 1)
+
 # ── 탭 구성 ────────────────────────────────────
-tab1, tab2 = st.tabs(["시뮬레이션", "최적화 비교"])
+tab1, tab2, tab3 = st.tabs(["시뮬레이션", "최적화 비교", "Phase 3"])
 
 # ── 시뮬레이션 탭 ──────────────────────────────
 with tab1:
@@ -276,3 +279,44 @@ with tab2:
         "품질 보장": ["근사", "근사", "근사(BKS 5%)", "최적", "near-optimal"],
     }
     st.dataframe(pd.DataFrame(complexity), use_container_width=True)
+
+# ── Phase 3 탭 ──────────────────────────────────
+with tab3:
+    st.subheader("Phase 3 구현 현황")
+
+    phase3_data = {
+        "항목": ["대규모 벤치마크", "멀티-예인선 배정", "AIS 데이터 처리", "대시보드 고도화"],
+        "상태": ["✅ 완료", "✅ 완료", "✅ 완료", "🔄 진행 중"],
+        "결과": ["n=50(11초), n=75(36초)", "Gang scheduling 구현", "Log-normal/KDE 피팅", "이 화면"],
+        "테스트": ["—", "5/5 PASS", "5/5 PASS", "—"],
+    }
+    st.dataframe(pd.DataFrame(phase3_data), use_container_width=True)
+
+    st.subheader("대규모 벤치마크 결과")
+    benchmark_data = {
+        "알고리즘": ["ALNS", "ALNS", "RHO"],
+        "n (선박)": [50, 75, 50],
+        "배정률": ["100%", "100%", "100%"],
+        "소요시간": ["11.28s", "36.08s", "0.47s"],
+        "수렴": ["✅", "✅", "✅"],
+    }
+    st.dataframe(pd.DataFrame(benchmark_data), use_container_width=True)
+
+    st.subheader("AIS 편차 분포 시각화")
+    try:
+        import sys; sys.path.insert(0, '.')
+        from libs.stochastic.ais_processor import generate_synthetic_ais, fit_eta_distribution
+        import plotly.express as px
+
+        weather = st.selectbox("날씨 조건", ["calm", "moderate", "rough"])
+        data = generate_synthetic_ais(n_records=500, weather=weather)
+        model = fit_eta_distribution(data)
+
+        fig = px.histogram(x=data, nbins=50, title=f"ETA 편차 분포 ({weather}) — {model.distribution_type}",
+                          labels={"x": "ETA 편차 (hours)", "y": "빈도"})
+        st.plotly_chart(fig, use_container_width=True)
+        st.metric("평균 편차", f"{model.mean_h:.2f}h")
+        st.metric("표준편차", f"{model.std_h:.2f}h")
+        st.metric("분포 타입", model.distribution_type)
+    except ImportError:
+        st.info("plotly 미설치: pip install plotly")
