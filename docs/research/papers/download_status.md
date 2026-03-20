@@ -40,10 +40,10 @@
 
 | Label | DOI/URL | 시도 결과 | 권장 대안 |
 |-------|---------|-----------|-----------|
-| TSP-2 (Hinnenthal 2010) | 10.1016/j.oceaneng.2009.10.011 | Sci-Hub 전 미러 404/403 — DB 미수록 | [libgen.li](https://libgen.li) 또는 [unpaywall.org](https://unpaywall.org) 검색 |
-| HVTM-3 (Du 2015) | 10.1016/j.ocecoaman.2015.02.014 | Sci-Hub 전 미러 404/403 — DB 미수록 | [z-library.sk](https://z-library.sk) 또는 저자 ResearchGate 페이지 |
-| CCP-1 (Meng 2010) | 10.1080/03088839.2010.486644 | Sci-Hub 전 미러 404/403 — DB 미수록 | [libgen.li](https://libgen.li) 또는 저자 이메일 요청 |
-| SAA-M1 | https://commons.wmu.se/all_dissertations/3448/ | WMU 서버 403/202(빈 응답) — 접근 차단 | WMU 도서관 직접 접속 또는 저자 연락 |
+| TSP-2 (Hinnenthal 2010) | 10.1016/j.oceaneng.2009.10.011 | Sci-Hub 전 미러 404/403 — DB 미수록. Unpaywall API 404 (2026-03-20) | 기관 구독 또는 저자 이메일 요청 |
+| HVTM-3 (Du 2015) | 10.1016/j.ocecoaman.2015.02.014 | Sci-Hub 전 미러 404/403 — DB 미수록. Unpaywall API 404 (2026-03-20) | 기관 구독 또는 저자 ResearchGate/홈페이지 확인 |
+| CCP-1 (Meng 2010) | 10.1080/03088839.2010.486644 | Sci-Hub 전 미러 404/403 — DB 미수록. Unpaywall API 404 (2026-03-20) | 기관 구독 또는 저자 이메일 요청 |
+| SAA-M1 | https://commons.wmu.se/all_dissertations/3448/ | WMU 서버 AWS WAF challenge로 자동 다운로드 403/202 (2026-03-20) | 브라우저로 직접 접속 후 수동 다운로드 |
 
 > **참고**: COMP-1 (Garey 1979, ISBN 978-0716710455)은 도서이므로 도서관 대출 또는 [libgen.li](https://libgen.li) ISBN 검색 권장.
 
@@ -52,3 +52,17 @@
 ```bash
 python3 scripts/download_papers_scihub.py --doi {DOI}
 ```
+
+### Worker 2 Results (SemanticScholar/CrossRef/Direct)
+
+- TSP-2: Failed
+- HVTM-3: Failed
+- CCP-1: Failed
+- SAA-M1: Failed
+
+### Worker 2 Results (SemanticScholar/CrossRef/Direct)
+
+- TSP-2: Failed
+- HVTM-3: Failed
+- CCP-1: Failed
+- SAA-M1: Failed
