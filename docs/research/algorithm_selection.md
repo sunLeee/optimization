@@ -196,3 +196,25 @@ START: (n, m, k, T) 파라미터 확인
 ---
 
 *Scientist agent — port-opt-complexity session — 2026-03-19*
+
+---
+
+## 9. 프로젝트 결정 사항 (deep-interview 2026-03-20 확정)
+
+본 문서의 일반 가이드와 달리, 이 프로젝트의 실제 Tier 경계는 deep-interview 결과를 따른다.
+
+| Tier | 규모 | 알고리즘 | 솔버/프레임워크 | 연료 모델 |
+|------|------|---------|----------------|---------|
+| **Tier 1** | n < 10 | Exact MILP (McCormick 선형화) | Pyomo + HiGHS | F=α·d (선형) |
+| **Tier 2** | n = 10~50 | **ALNS** (Ropke & Pisinger 2006) + eco-speed alternating | 자체 구현 + CVXPY GP | F=α·v^2.5·d |
+| **Tier 3** | n > 50 | Benders Decomposition (Master HiGHS + Sub IPOPT) | Pyomo | F=α·v^2.5·d |
+
+> 주의: 문서 섹션 2의 "중규모 (n=10~50)"는 일반 문헌 기준 Tabu/2-opt를 권장하지만,
+> 본 프로젝트에서는 커스터마이징 자유도를 위해 ALNS를 Tier 2로 채택한다.
+> ALNS는 destroy/repair 연산자를 도메인 특화 방식으로 정의 가능하여
+> 예인선 배정 재계획(time-window aware) 구현에 최적이다.
+
+**γ=2.5 처리 전략 (Tier별)**:
+- Tier 1: F=α·d 완전 선형화 (속도 고정, Step 1 구현)
+- Tier 2: ALNS outer loop에서 x 고정 후 CVXPY GP로 eco-speed 최적화 (alternating)
+- Tier 3: Benders subproblem에서 IPOPT로 연속 속도 최적화
