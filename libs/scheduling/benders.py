@@ -25,7 +25,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
-from libs.scheduling.tsp_t_milp import _haversine_nm, DEPOT
+from libs.utils.geo import haversine_nm
+from libs.utils.constants import DEPOT
 
 try:
     import pyomo.environ as pyo
@@ -117,7 +118,7 @@ class BendersDecomposition:
         dist: dict[tuple[str, str], float] = {}
         for i in nodes:
             for j in nodes:
-                dist[(i, j)] = 0.0 if i == j else _haversine_nm(locs[i], locs[j])
+                dist[(i, j)] = 0.0 if i == j else haversine_nm(locs[i], locs[j])
         return dist
 
     # ── Master Problem ────────────────────────────────────────

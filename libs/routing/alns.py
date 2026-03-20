@@ -23,10 +23,9 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
+from libs.utils.geo import haversine_nm
+from libs.utils.constants import DEPOT
 from libs.fuel.eco_speed import EcoSpeedOptimizer, SpeedSolution
-
-# Depot 노드 ID
-DEPOT = "__depot__"
 
 
 # ── 데이터 타입 ──────────────────────────────────────────────
@@ -323,8 +322,6 @@ class ALNSWithSpeedOptimizer:
 
     def _build_distances(self) -> dict[tuple[str, str], float]:
         """구간별 거리 행렬 (해리, Haversine)."""
-        from libs.scheduling.tsp_t_milp import _haversine_nm
-
         locs: dict[str, tuple[float, float]] = {DEPOT: list(self.berth_locations.values())[0]}
         for w in self.windows:
             locs[w.vessel_id] = self.berth_locations[w.berth_id]
@@ -333,7 +330,7 @@ class ALNSWithSpeedOptimizer:
         dist: dict[tuple[str, str], float] = {}
         for i in nodes:
             for j in nodes:
-                dist[(i, j)] = 0.0 if i == j else _haversine_nm(locs[i], locs[j])
+                dist[(i, j)] = 0.0 if i == j else haversine_nm(locs[i], locs[j])
         return dist
 
     def _all_arcs(self, routes: dict[str, list[str]]) -> list[tuple[str, str]]:

@@ -37,6 +37,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
+from libs.utils.geo import haversine_nm
+from libs.utils.constants import DEPOT
 
 try:
     import pyomo.environ as pyo
@@ -44,9 +46,6 @@ try:
     _HAS_PYOMO = True
 except ImportError:
     _HAS_PYOMO = False
-
-# 더미 노드 (depot)
-DEPOT = "__depot__"
 
 
 @dataclass
@@ -59,16 +58,6 @@ class SolverResult:
     optimality_gap: float          # HiGHS 보고 gap (분율)
     solver_status: str
     solve_time_sec: float
-
-
-def _haversine_nm(pos1: tuple[float, float], pos2: tuple[float, float]) -> float:
-    """두 (lat, lon) 좌표 사이 거리 (해리, Haversine)."""
-    R = 3440.065  # 지구 반경 (해리)
-    lat1, lon1 = math.radians(pos1[0]), math.radians(pos1[1])
-    lat2, lon2 = math.radians(pos2[0]), math.radians(pos2[1])
-    dlat, dlon = lat2 - lat1, lon2 - lon1
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 def _compute_big_m(windows: list[TimeWindowSpec]) -> float:
@@ -143,7 +132,7 @@ class TugScheduleModel:
             for j in self._nodes:
                 dist[(i, j)] = (
                     0.0 if i == j
-                    else _haversine_nm(nodes_with_pos[i], nodes_with_pos[j])
+                    else haversine_nm(nodes_with_pos[i], nodes_with_pos[j])
                 )
         return dist
 

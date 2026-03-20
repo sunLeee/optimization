@@ -4,25 +4,25 @@ import numpy as np
 
 
 def fuel_consumption(
-    speed: float,
-    distance: float,
+    speed_kn: float,
+    dist_nm: float,
     alpha: float = 1.0,
-    gamma: float = 2.0,
+    gamma: float = 2.5,
 ) -> float:
     """선박 연료 소비량 계산.
 
     F(v, d) = alpha * v^gamma * d
 
     Args:
-        speed: 속도 (knots)
-        distance: 거리 (nautical miles)
-        alpha: 연료 소비 계수 (vessel-specific)
-        gamma: 속도 지수 (2.0 for QP, 3.0 for MINLP)
+        speed_kn: 속도 (knots)
+        dist_nm: 거리 (nautical miles)
+        alpha: 연료 소비 계수 (vessel-specific, MT/nm·kn^gamma)
+        gamma: 속도 지수 (2.5 고정, AW-006)
 
     Returns:
-        연료 소비량 (metric tons)
+        fuel_mt: 연료 소비량 (metric tons)
     """
-    return alpha * (speed ** gamma) * distance
+    return alpha * (speed_kn ** gamma) * dist_nm
 
 
 def mccormick_linearize(
