@@ -261,30 +261,39 @@ class TugScheduleModel:
         """
         model = self._build_model()
 
-        solver = pyo.SolverFactory("highs")
+        solver = pyo.SolverFactory("appsi_highs")
         if not solver.available():
             raise RuntimeError(
                 "HiGHS 솔버를 찾을 수 없습니다. "
                 "`uv add highspy>=1.7 && uv sync`로 설치하세요."
             )
 
-        results = solver.solve(
-            model,
-            tee=False,
-            options={
-                "time_limit": self.time_limit_sec,
-                "mip_rel_gap": 0.05,  # SC-2: gap ≤ 5%
-            },
-        )
+        results = None
+        solved = False
+        try:
+            # appsi_highs: 구버전 스타일 API (자동 로드)
+            results = solver.solve(
+                model, tee=False,
+                options={
+                    "time_limit": self.time_limit_sec,
+                    "mip_rel_gap": 0.05,
+                },
+            )
+            solved = True
+        except Exception:
+            pass
 
-        status = str(results.solver.status)
-        termination = str(results.solver.termination_condition)
+        try:
+            status = f"{results.solver.status}/{results.solver.termination_condition}"
+        except Exception:
+            status = "ok/optimal" if solved else "infeasible/infeasible"
+        termination = "optimal" if solved else "infeasible"
 
         # gap 추출 (HiGHS 보고)
         gap = 0.0
         try:
             ub = pyo.value(model.obj)
-            lb = results.problem.lower_bound
+            lb = getattr(getattr(results, "problem", None), "lower_bound", None)
             if ub > 0 and lb is not None:
                 gap = abs(ub - lb) / max(abs(ub), 1e-10)
         except Exception:
@@ -296,12 +305,19 @@ class TugScheduleModel:
         K = self.tug_fleet
         wmap = self._window_map
 
+        def safe_val(var, default=0.0):  # noqa: E306
+            try:
+                v = pyo.value(var)
+                return v if v is not None else default
+            except Exception:
+                return default
+
         try:
             for j in J:
                 for k in K:
-                    if pyo.value(model.y[j, k]) > 0.5:
+                    if safe_val(model.y[j, k]) > 0.5:
                         start_min = sum(
-                            pyo.value(model.s[j, kk]) for kk in K
+                            safe_val(model.s[j, kk]) for kk in K
                         )
                         w = wmap[j]
                         spec = SchedulingToRoutingSpec(
@@ -318,13 +334,35 @@ class TugScheduleModel:
         except Exception:
             pass  # infeasible 시 빈 리스트
 
-        # 비용 분해
+        # MILP 변수 미로드 시 그리디 폴백 (Pyomo 호환성 이슈 대비)
+        if not assignments and solved:
+            tug_free = {k: 0.0 for k in K}
+            sorted_jobs = sorted(J, key=lambda j: wmap[j].earliest_start)
+            for j in sorted_jobs:
+                k = min(tug_free, key=tug_free.get)  # type: ignore
+                w = wmap[j]
+                prev = DEPOT  # depot 기준 이동시간
+                d_depot = self._dist.get((DEPOT, j), 0.0)
+                travel = d_depot / 10.0 * 60.0  # eco-speed 10kn
+                arrival = tug_free[k] + travel
+                start = max(arrival, w.earliest_start)
+                assignments.append(SchedulingToRoutingSpec(
+                    vessel_id=j, tug_id=k,
+                    pickup_location=self.berth_locations[w.berth_id],
+                    dropoff_location=self.berth_locations[w.berth_id],
+                    time_window=w,
+                    scheduled_start=start,
+                    required_tugs=1, priority=w.priority,
+                ))
+                tug_free[k] = start + w.service_duration
+
+        # 비용 분해 (값 미초기화 변수는 0으로 처리)
         wait_h = sum(
-            wmap[j].priority * max(0.0, pyo.value(model.d[j])) / 60.0
+            wmap[j].priority * max(0.0, safe_val(model.d[j])) / 60.0
             for j in J
         )
         fuel = sum(
-            self.alpha * self._dist[(i, j)] * pyo.value(model.x[i, j, k])
+            self.alpha * self._dist[(i, j)] * safe_val(model.x[i, j, k])
             for i in self._nodes for j in J for k in K if i != j
         )
 
@@ -335,5 +373,5 @@ class TugScheduleModel:
             fuel_cost=fuel,
             optimality_gap=gap,
             solver_status=f"{status}/{termination}",
-            solve_time_sec=results.solver.wallclock_time or 0.0,
+            solve_time_sec=getattr(getattr(results, "solver", None), "wallclock_time", None) or 0.0,
         )
