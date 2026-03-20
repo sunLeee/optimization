@@ -1,88 +1,46 @@
 #!/usr/bin/env bash
-# check-criteria.sh — claude-config 품질 종료 조건 (AW-008)
-# 3-agent 합산: Codex(10) + Gemini(10) + Claude(10) = 30개 정량 기준
-# 사용법: bash .claude/check-criteria.sh
+# check-criteria.sh — 품질 종료 조건 오케스트레이터
+# common-criteria.sh + project-criteria.sh(있으면) 실행
+# 사용법: bash .claude/check-criteria.sh [--score]
 
-pass=0; total=0
-
-# --score 플래그: 숫자만 출력하고 종료
 _SCORE_ONLY=false
-if [ "$1" = "--score" ]; then
-  _SCORE_ONLY=true
+[ "$1" = "--score" ] && _SCORE_ONLY=true
+
+COMMON=".claude/common-criteria.sh"
+PROJECT=".claude/project-criteria.sh"
+
+# common-criteria.sh 실행하여 pass/total 획득
+if [ -f "$COMMON" ]; then
+  c_out=$(bash "$COMMON" --counts 2>/dev/null)
+  c_pass=$(echo "$c_out" | awk '{print $1}')
+  c_total=$(echo "$c_out" | awk '{print $2}')
+else
+  c_pass=0; c_total=0
 fi
 
-chk() {
-  local id="$1" desc="$2" cmd="$3" op="$4" target="$5"
-  total=$((total+1))
-  val=$(eval "$cmd" 2>/dev/null || echo "ERR")
-  ok=false
-  case "$op" in
-    ">=") [[ "$val" =~ ^[0-9]+$ ]] && [ "$val" -ge "$target" ] && ok=true ;;
-    "=")  [[ "$val" == "$target" ]] && ok=true ;;
-    "<=") [[ "$val" =~ ^[0-9]+$ ]] && [ "$val" -le "$target" ] && ok=true ;;
-  esac
-  $ok && pass=$((pass+1)) && echo "✅ [$id] $desc ($val $op $target)" \
-      || echo "❌ [$id] $desc ($val vs $op$target)"
-}
+# project-criteria.sh 실행 (있으면)
+if [ -f "$PROJECT" ]; then
+  p_out=$(bash "$PROJECT" --counts 2>/dev/null)
+  p_pass=$(echo "$p_out" | awk '{print $1}')
+  p_total=$(echo "$p_out" | awk '{print $2}')
+else
+  p_pass=0; p_total=0
+fi
 
-# --score 모드에서는 체크 출력 억제
-$_SCORE_ONLY && exec 3>&1 1>/dev/null
-
-echo "=== Codex: 코드/구조 품질 ==="
-chk COD-01 "skill 수" "find .claude/skills -name SKILL.md | wc -l | tr -d ' '" ">=" 128
-chk COD-02 "name 완비" "find .claude/skills -name SKILL.md -exec grep -l '^name:' {} \; | wc -l | tr -d ' '" "=" 128
-chk COD-03 "description 완비" "find .claude/skills -name SKILL.md -exec grep -l '^description:' {} \; | wc -l | tr -d ' '" "=" 128
-chk COD-04 "triggers 완비" "find .claude/skills -name SKILL.md -exec grep -l '^triggers:' {} \; | wc -l | tr -d ' '" "=" 128
-chk COD-05 "rules 수" "find .claude/rules -name '*.md' | wc -l | tr -d ' '" ">=" 12
-chk COD-06 "quality skill 수" "find .claude/skills/quality -name SKILL.md | wc -l | tr -d ' '" ">=" 15
-chk COD-07 "reference skill 수" "find .claude/skills/reference -name SKILL.md | wc -l | tr -d ' '" ">=" 40
-chk COD-08 "Gotchas 있는 skill" "find .claude/skills -name SKILL.md -exec grep -il 'gotcha' {} \; | wc -l | tr -d ' '" ">=" 50
-chk COD-09 "settings.json 유효" "python3 -m json.tool .claude/settings.json >/dev/null 2>&1 && echo 0 || echo 1" "=" 0
-chk COD-10 "setup.sh 존재" "test -f .claude/setup.sh && echo 0 || echo 1" "=" 0
-
-echo ""
-echo "=== Gemini: 문서화 품질 ==="
-chk GEM-01 "CLAUDE.md 존재" "test -f CLAUDE.md && echo 0 || echo 1" "=" 0
-chk GEM-02 "CLAUDE.md 섹션 수" "grep -c '^## ' CLAUDE.md" ">=" 8
-chk GEM-03 "AW 규칙 참조" "grep -cE 'AW-[0-9]' CLAUDE.md" ">=" 10
-chk GEM-04 "ADR 수" "find .claude/docs/adr -name 'ADR-*.md' 2>/dev/null | wc -l | tr -d ' '" ">=" 3
-chk GEM-05 "OMC 가이드 수" "find .claude/docs -name 'omc*.md' | wc -l | tr -d ' '" ">=" 2
-chk GEM-06 "setup.md 존재" "test -f .claude/docs/setup.md && echo 0 || echo 1" "=" 0
-chk GEM-07 "hooks-guide-ko.md 존재" "test -f .claude/docs/hooks-guide-ko.md && echo 0 || echo 1" "=" 0
-chk GEM-08 "naming-conventions.md 존재" "test -f .claude/docs/naming-conventions.md && echo 0 || echo 1" "=" 0
-chk GEM-09 "배포 가이드 (setup.sh 언급)" "grep -cE 'setup\.sh' CLAUDE.md" ">=" 1
-chk GEM-10 "전체 docs md 수" "find .claude/docs -name '*.md' | wc -l | tr -d ' '" ">=" 14
-
-echo ""
-echo "=== Claude: 워크플로우 품질 ==="
-chk CLD-01 "UserPromptSubmit 훅" "grep -c 'UserPromptSubmit' .claude/settings.json" ">=" 1
-chk CLD-02 "haiku AI 분류 훅" "grep -c '\"type\": \"prompt\"' .claude/settings.json" ">=" 1
-chk CLD-03 "PreToolUse 차단" "grep -c 'PreToolUse' .claude/settings.json" ">=" 1
-chk CLD-04 "PostToolUse 해제" "grep -c 'PostToolUse' .claude/settings.json" ">=" 1
-chk CLD-05 "CLAUDE.md ≤250줄" "wc -l < CLAUDE.md | tr -d ' '" "<=" 250
-chk CLD-06 "git clean" "git status --short | wc -l | tr -d ' '" "=" 0
-chk CLD-07 "ADR ≥3개" "find .claude/docs/adr -name '*.md' 2>/dev/null | wc -l | tr -d ' '" ">=" 3
-chk CLD-08 "skill-catalog.md" "test -f .claude/skill-catalog.md && echo 0 || echo 1" "=" 0
-chk CLD-09 "hook 문서화" "grep -cE 'TASK-MODE-ACTIVATED|TASK-DETECTED' .claude/docs/hooks-guide-ko.md" ">=" 1
-chk CLD-10 "워크플로우 규칙" "grep -cE 'deep-interview|ralplan' CLAUDE.md" ">=" 3
-
-echo ""
-echo "=== Python Quality ==="
-chk PYQ-01 "pyproject.toml 존재" "test -f pyproject.toml && echo 0 || echo 1" "=" "0"
-chk PYQ-02 ".pre-commit-config.yaml 존재" "test -f .pre-commit-config.yaml && echo 0 || echo 1" "=" "0"
-chk PYQ-03 "ruff line-length=79 설정" "grep -c 'line-length = 79' pyproject.toml 2>/dev/null || echo 0" ">=" "1"
-chk PYQ-04 "mypy strict 설정" "grep -c 'strict = true' pyproject.toml 2>/dev/null || echo 0" ">=" "1"
-chk PYQ-05 "onboarding.md 존재" "test -f .claude/docs/onboarding.md && echo 0 || echo 1" "=" "0"
-
-pct=$((pass * 100 / total))
+total_pass=$((c_pass + p_pass))
+total_total=$((c_total + p_total))
+pct=$((total_pass * 100 / (total_total > 0 ? total_total : 1)))
 
 if $_SCORE_ONLY; then
-  exec 1>&3 3>&-
   echo "$pct"
   exit 0
 fi
 
 echo ""
-echo "=== 총점: $pass/$total ($pct%) ==="
+echo "=== 품질 체크 결과 ==="
+bash "$COMMON" 2>/dev/null
+[ -f "$PROJECT" ] && bash "$PROJECT" 2>/dev/null
+echo ""
+echo "=== 총점: $total_pass/$total_total ($pct%) ==="
 [ "$pct" -ge 90 ] && echo "✅ 종료 조건 달성" || echo "❌ 미달 — 계속 작업"
 [ "$pct" -ge 90 ] && exit 0 || exit 1
