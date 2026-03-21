@@ -113,6 +113,12 @@ PDF 획득 시도. 수동 다운로드 필요 시 `docs/research/papers/download
 
 역사적 데이터 N≥200 → KDE 또는 GMM. N<200 → Log-normal(MLE 피팅). 데이터 없음 → TruncatedNormal(-2, +2).
 
+**실측값 (2024-06 부산항, N=336, ADR-001):**
+- `mu_log=4.015`, `sigma_log=1.363` (지연 중앙값 55.4분)
+- `clip=[-6h, +6h]` (±2h 커버 81.5% → ±6h 89.6%)
+- 지연 비율 71.4% / 조기 도착 28.6%
+- 현행 `TwoStageConfig` 기본값에 반영 완료 (2026-03-21)
+
 ## 리서치 문서 구조
 
 ```
