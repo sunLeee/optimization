@@ -25,6 +25,9 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable
 
+import numpy as np
+from scipy.optimize import differential_evolution
+
 from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
 from libs.utils.geo import haversine_nm
 from libs.utils.constants import DEPOT
@@ -528,6 +531,102 @@ def greedy_initial_solution(
         routes[k].append(DEPOT)
 
     return routes
+
+
+def fit_shaw_lambdas(
+    windows: list[TimeWindowSpec],
+    assignments: dict[str, list[str]],
+    distances: dict[tuple[str, str], float],
+    seed: int = 42,
+) -> tuple[float, float, float]:
+    """Shaw Destroy 가중치 (λ_d, λ_t, λ_p)를 역사적 데이터로 피팅.
+
+    같은 예인선에 순차 배정된 작업 쌍(similar)과 다른 예인선 쌍(dissimilar)의
+    relatedness 분리도를 최대화하도록 λ를 최적화한다.
+
+    피팅 데이터가 부족(N<10)하면 원논문 기본값 (0.5, 0.3, 0.2) 반환.
+
+    부산항 실측값 (2024-06, N=336, ADR-002):
+        λ_d=0.000, λ_t=1.000, λ_p=0.000 (시간창이 지배적)
+
+    Args:
+        windows: 작업 time window 목록.
+        assignments: 예인선별 배정 vessel_id 리스트 (DEPOT 포함 무방).
+        distances: (vessel_i, vessel_j) → 거리(nm) 딕셔너리.
+        seed: 재현성 시드.
+
+    Returns:
+        (lambda_d, lambda_t, lambda_p) — 합계 = 1.0.
+    """
+    _DEFAULTS = (0.5, 0.3, 0.2)  # 원논문 Ropke & Pisinger 2006
+
+    # 인덱스 맵
+    win_map = {w.vessel_id: w for w in windows}
+    T_max = max((w.latest_start for w in windows), default=1.0) or 1.0
+    P_max = max((w.priority for w in windows), default=1) or 1
+
+    # similar 쌍: 같은 예인선 내 순차 작업
+    pairs_same: list[tuple[float, float, float]] = []
+    for tug_id, route in assignments.items():
+        jobs = [v for v in route if v != DEPOT and v in win_map]
+        for i in range(len(jobs) - 1):
+            a, b = win_map[jobs[i]], win_map[jobs[i + 1]]
+            d = distances.get((a.vessel_id, b.vessel_id),
+                              distances.get((b.vessel_id, a.vessel_id), 0.0))
+            t = abs(a.earliest_start - b.earliest_start)
+            p = abs(a.priority - b.priority)
+            pairs_same.append((d, t, float(p)))
+
+    if len(pairs_same) < 5:
+        return _DEFAULTS
+
+    # dissimilar 쌍: 다른 예인선 작업 (동수 샘플링)
+    rng = np.random.default_rng(seed)
+    all_routes = [
+        [v for v in route if v != DEPOT and v in win_map]
+        for route in assignments.values()
+        if len([v for v in route if v != DEPOT and v in win_map]) > 0
+    ]
+    pairs_diff: list[tuple[float, float, float]] = []
+    for _ in range(len(pairs_same)):
+        if len(all_routes) < 2:
+            break
+        r1_idx, r2_idx = rng.choice(len(all_routes), 2, replace=False)
+        a = win_map[all_routes[r1_idx][rng.integers(len(all_routes[r1_idx]))]]
+        b = win_map[all_routes[r2_idx][rng.integers(len(all_routes[r2_idx]))]]
+        d = distances.get((a.vessel_id, b.vessel_id),
+                          distances.get((b.vessel_id, a.vessel_id), 0.0))
+        t = abs(a.earliest_start - b.earliest_start)
+        p = abs(a.priority - b.priority)
+        pairs_diff.append((d, t, float(p)))
+
+    if not pairs_diff:
+        return _DEFAULTS
+
+    arr = np.array(pairs_same + pairs_diff, dtype=float)
+    labels = np.array([1] * len(pairs_same) + [0] * len(pairs_diff))
+
+    d_max = arr[:, 0].max() or 1.0
+    t_max = arr[:, 1].max() or T_max
+    p_max = arr[:, 2].max() or float(P_max)
+    arr_n = arr / np.array([d_max, t_max, p_max])
+
+    def _loss(lam12: np.ndarray) -> float:
+        l1, l2 = lam12
+        l3 = 1.0 - l1 - l2
+        if l3 < 0.0:
+            return 1e9
+        r = arr_n @ np.array([l1, l2, l3])
+        return -(r[labels == 0].mean() - r[labels == 1].mean())
+
+    result = differential_evolution(
+        _loss, bounds=[(0.0, 1.0), (0.0, 1.0)], seed=int(seed), maxiter=300
+    )
+    l1, l2 = float(result.x[0]), float(result.x[1])
+    l3 = max(0.0, 1.0 - l1 - l2)
+    # 정규화
+    total = l1 + l2 + l3 or 1.0
+    return round(l1 / total, 4), round(l2 / total, 4), round(l3 / total, 4)
 
 
 # ── 메인 ALNS 클래스 ──────────────────────────────────────────
