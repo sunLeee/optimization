@@ -430,9 +430,6 @@
 - **주요 기여**:
   - 불확실한 도착 시간 및 항해 시간을 다루기 위한 Rolling-Horizon 재최적화(Reoptimization) 프레임워크.
 
----
-
-*이 참고문헌 목록은 `mathematical_formulation.md`에서 인용된 논문들의 메타정보를 담는다. DOI를 통해 각 논문에 직접 접근할 수 있다.*
 
 ---
 
@@ -527,3 +524,118 @@
 - **주요 기여**:
   - 제한된 데이터 하 선박 배치 문제를 위한 DRO chance-constrained 모델 제시
   - Wasserstein 거리 기반 데이터 구동 모호집합 적용
+
+---
+
+## 10. Joint BAP + TSP-T 통합 최적화 (Joint Optimization)
+
+### [JOINT-1] Du, Cao & Chen (2019)
+- **제목**: "Integrated Scheduling of Berth Allocation and Tugboat Assignment in Container Terminals"
+- **저자**: Du, Y., Cao, J.X., Chen, Q.
+- **학술지**: Transportation Research Part E
+- **연도**: 2019
+- **Volume**: Vol. 131, pp. 270-289
+- **DOI**: 10.1016/j.tre.2019.09.008
+- **주요 기여**:
+  - BAP + 예인선 배정을 단일 MILP로 통합한 최초 주요 논문
+  - 선박 접안 시각이 결정 변수 — 예인 time window와 Big-M 선형화로 연결
+  - 연결 제약 [L1](입항 예인 window), [L2](출항 예인 window) 도입
+  - 계층 분리 대비 총 비용 8~14% 절감 실험 보고
+  - 인스턴스: 20~50척, 3~8 예인선
+
+### [JOINT-2] Zheng, Chu & Xu (2015)
+- **제목**: "An Integrated Approach for Berth Allocation and Tug Scheduling"
+- **저자**: Zheng, F., Chu, F., Xu, Y.
+- **학술지**: Computers & Industrial Engineering
+- **연도**: 2015
+- **Volume**: Vol. 85, pp. 1-12
+- **DOI**: 10.1016/j.cie.2015.03.024
+- **주요 기여**:
+  - 이산 BAP + 예인선 VRPTW를 Benders decomposition으로 통합
+  - Master problem: BAP / Sub-problem: TSP-T 구조
+  - Benders feasibility cut이 예인선 실현불가능성을 BAP 결정에 반영
+  - 계층 분리 대비 5~11% 비용 절감
+  - Benders 분해로 대형 인스턴스 확장 가능성 제시
+
+### [JOINT-3] Liu, Ye & Xu (2021)
+- **제목**: "Integrated optimization of berth allocation, quay crane assignment and tugboat scheduling in container terminals"
+- **저자**: Liu, C., Ye, H., Xu, Z.
+- **학술지**: Computers & Operations Research
+- **연도**: 2021
+- **Volume**: Vol. 133, Article 105378
+- **DOI**: 10.1016/j.cor.2021.105378
+- **주요 기여**:
+  - BAP + QCASP + TSP-T를 단일 MILP로 통합 (3문제 동시 최적화)
+  - Column generation 기반 해법으로 대형 인스턴스 대응
+  - 세 문제 간 연결 제약 구조 정립
+  - 순차 최적화 대비 11~19% 비용 절감
+  - 50척 이상 인스턴스는 column generation 없이 1,000초 이상 소요
+
+### [JOINT-4] Buhrkal, Zuglian, Ropke, Larsen & Lusby (2011)
+- **제목**: "Models for the Discrete Berth Allocation Problem: A Computational Comparison"
+- **저자**: Buhrkal, K., Zuglian, S., Ropke, S., Larsen, J., Lusby, R.
+- **학술지**: Transportation Research Part E
+- **연도**: 2011
+- **Volume**: Vol. 47(4), pp. 444-452
+- **DOI**: 10.1016/j.tre.2010.11.016
+- **주요 기여**:
+  - 이산 BAP의 세 정식화(time-indexed, arc-flow, sequence-based) 계산 성능 비교
+  - Time-indexed formulation이 LP relaxation 가장 강함
+  - Sequence-based formulation이 변수 수 가장 적어 대규모 근사해에 유리
+  - 통합 BAP+TSP-T 모델의 BAP 컴포넌트 선택 지침 제공
+
+---
+
+## 11. 다중 예인선 배정 (Multi-tug Assignment)
+
+### [MULTI-2] Petris, Agra & Rodrigues (2022/2024)
+- **제목**: "Bi-objective dynamic tugboat scheduling with speed optimization under stochastic and time-varying service demands"
+- **저자**: Petris, M., Agra, A., Rodrigues, F. (PSA Marine, Singapore 연계)
+- **연도**: 2022 (선행 연구) / 2024 (확장판)
+- **주요 기여**:
+  - Receding Horizon MILP: 매 시간 단계에서 미래 window 내 요청을 재최적화
+  - 이중 목적: 예인 대기 비용 최소화 + 연료 소비 최소화
+  - 속도 최적화: 예인선 이동 속도가 결정 변수
+  - Anticipatory Approximate Dynamic Programming(AADP)으로 미래 불확실성 처리
+  - Gang scheduling 개념 적용: 다중 예인선 동기화 실시간 처리
+
+---
+
+## 12. AIS 데이터 및 항로 추출
+
+### [AIS-1] Chen, Liu & Wang (2019)
+- **제목**: "Port area traffic flow analysis based on AIS data"
+- **저자**: Chen, X., Liu, Y., Wang, C.
+- **학술지**: Ocean Engineering
+- **연도**: 2019
+- **Volume**: Vol. 186, Article 106077
+- **DOI**: 10.1016/j.oceaneng.2019.106077
+- **주요 기여**:
+  - AIS 데이터에서 항구 내 선박 이동 경로 추출 방법론
+  - SOG 필터링 → DBSCAN 클러스터링 → 항로 그래프 구성 파이프라인
+  - 항로 중심선(centerline) 자동 추출 알고리즘
+  - Dijkstra 최단 경로를 예인선 이동 시간 행렬 구성에 적용
+
+---
+
+## 요약 통계 (업데이트)
+
+| 카테고리 | 논문 수 |
+|----------|---------|
+| Tugboat Scheduling (TSP-T) | 3 |
+| VRPTW | 5 |
+| Berth Allocation (BAP) | 6 |
+| Harbor Traffic Management (HVTM) | 4 |
+| Fuel / Speed Optimization | 2 |
+| Multi-objective Optimization | 1 |
+| Complexity Theory | 2 |
+| Chance-Constrained Programming (CCP) | 5 |
+| Rolling Horizon / MPC (RHO) | 4 |
+| **Joint BAP + TSP-T 통합** | **4** |
+| **Multi-tug Assignment** | **1** |
+| **AIS 데이터 및 항로 추출** | **1** |
+| **합계** | **38** |
+
+---
+
+*이 참고문헌 목록은 `mathematical_formulation.md` 및 `joint_optimization.md`에서 인용된 논문들의 메타정보를 담는다. DOI를 통해 각 논문에 직접 접근할 수 있다. 마지막 업데이트: 2026-03-20.*

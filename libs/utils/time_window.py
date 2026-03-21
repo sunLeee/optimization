@@ -18,6 +18,7 @@ class TimeWindowSpec:
     earliest_start: float  # e_j(z) from BAP, minutes
     latest_start: float    # l_j(z) from BAP, minutes
     service_duration: float  # minutes
+    priority: int = 1      # 우선순위 가중치 (목적함수: priority × wait_hours)
 
 
 @dataclass
@@ -31,5 +32,6 @@ class SchedulingToRoutingSpec:
     pickup_location: tuple[float, float]   # (lat, lon) degrees
     dropoff_location: tuple[float, float]  # (lat, lon) degrees
     time_window: TimeWindowSpec
-    required_tugs: int
+    scheduled_start: float = 0.0  # MILP solve() 결과 시작 시간 (minutes)
+    required_tugs: int = 1
     priority: int = 1

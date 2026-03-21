@@ -1,10 +1,10 @@
 # 논문 PDF 다운로드 현황
 
-**다운로드일**: 2026-03-19
-**소스**: Sci-Hub (sci-hub.kr)
-**결과**: 24/29 성공 (83%)
+**최초 다운로드**: 2026-03-19 — Sci-Hub (sci-hub.kr), 24/29 성공
+**재다운로드 시도**: 2026-03-20 — 실패 5편 대상
+**현재 결과**: 25/29 성공 (86%)
 
-## 성공 (24편) — pdfs/ 디렉토리 저장됨
+## 성공 (25편) — pdfs/ 디렉토리 저장됨
 
 | Label | DOI | 크기 |
 |-------|-----|------|
@@ -32,19 +32,37 @@
 | CCP-3 | 10.1016/j.apenergy.2018.03.153 | 983KB |
 | CCP-4 | 10.1016/j.ijpe.2010.03.008 | 253KB |
 | CCP-5 | 10.3390/s21051832 | 1210KB |
+| DRO-W1 | https://arxiv.org/pdf/2303.13544.pdf | 3205KB |
 
-## 수동 다운로드 필요 (5편)
+## 수동 다운로드 필요 (4편)
 
-| Label | DOI | 대안 |
-|-------|-----|------|
-| TSP-2 (Hinnenthal 2010) | 10.1016/j.oceaneng.2009.10.011 | [libgen.li](https://libgen.li) 검색 |
-| HVTM-3 (Du 2015) | 10.1016/j.ocecoaman.2015.02.014 | [z-library.sk](https://z-library.sk) 검색 |
-| CCP-1 (Meng 2010) | 10.1080/03088839.2010.486644 | [sci-hub.kr](https://sci-hub.kr) 재시도 |
-| COMP-1 (Garey 1979) | ISBN 978-0716710455 | 도서관 또는 [libgen.li](https://libgen.li) |
-| SAA papers | arxiv 링크 보유 | 직접 접근 가능 |
+### 재다운로드 시도 결과 (2026-03-20)
+
+| Label | DOI/URL | 시도 결과 | 권장 대안 |
+|-------|---------|-----------|-----------|
+| TSP-2 (Hinnenthal 2010) | 10.1016/j.oceaneng.2009.10.011 | Sci-Hub 전 미러 404/403 — DB 미수록. Unpaywall API 404 (2026-03-20) | 기관 구독 또는 저자 이메일 요청 |
+| HVTM-3 (Du 2015) | 10.1016/j.ocecoaman.2015.02.014 | Sci-Hub 전 미러 404/403 — DB 미수록. Unpaywall API 404 (2026-03-20) | 기관 구독 또는 저자 ResearchGate/홈페이지 확인 |
+| CCP-1 (Meng 2010) | 10.1080/03088839.2010.486644 | Sci-Hub 전 미러 404/403 — DB 미수록. Unpaywall API 404 (2026-03-20) | 기관 구독 또는 저자 이메일 요청 |
+| SAA-M1 | https://commons.wmu.se/all_dissertations/3448/ | WMU 서버 AWS WAF challenge로 자동 다운로드 403/202 (2026-03-20) | 브라우저로 직접 접속 후 수동 다운로드 |
+
+> **참고**: COMP-1 (Garey 1979, ISBN 978-0716710455)은 도서이므로 도서관 대출 또는 [libgen.li](https://libgen.li) ISBN 검색 권장.
 
 ## 재다운로드 명령
 
 ```bash
 python3 scripts/download_papers_scihub.py --doi {DOI}
 ```
+
+### Worker 2 Results (SemanticScholar/CrossRef/Direct)
+
+- TSP-2: Failed
+- HVTM-3: Failed
+- CCP-1: Failed
+- SAA-M1: Failed
+
+### Worker 2 Results (SemanticScholar/CrossRef/Direct)
+
+- TSP-2: Failed
+- HVTM-3: Failed
+- CCP-1: Failed
+- SAA-M1: Failed

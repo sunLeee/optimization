@@ -7,3 +7,4 @@ gamma=3: MINLP 필요 (IPOPT/Bonmin)
 
 의존: libs/utils만
 """
+from .eco_speed import EcoSpeedOptimizer, SpeedSolution; __all__ = ['EcoSpeedOptimizer','SpeedSolution']
