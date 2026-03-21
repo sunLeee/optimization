@@ -1,0 +1,14 @@
+shaw:
+  lambda_d: 0.0
+  lambda_t: 1.0
+  lambda_p: 0.0
+  accuracy: 0.908
+  n_pairs: 326
+  paper_defaults:
+    lambda_d: 0.5
+    lambda_t: 0.3
+    lambda_p: 0.2
+  data_source: data/raw/scheduling/data/2024-06_SchData.csv
+  fitted_at: '2026-03-21T14:22:16Z'
+  method: differential_evolution on similar/dissimilar pair separation
+  reference: 'ADR-002: docs/adr/ADR-002-shaw-lambda-empirical-fitting.md'

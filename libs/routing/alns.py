@@ -68,11 +68,39 @@ class ALNSConfig:
     # Adaptive Weight (Ropke & Pisinger 2006)
     segment_size: int = 100      # 가중치 갱신 주기
     rho: float = 0.1             # 학습률
-    # Shaw Destroy lambda (원논문 기본값; fit_shaw_lambdas()로 override)
-    shaw_lambda_d: float = 0.5   # 거리 가중치
+    # Shaw Destroy lambda (원논문 기본값; from_yaml() 또는 fit_shaw_lambdas()로 override)
+    shaw_lambda_d: float = 0.5   # 거리 가중치 (Ropke & Pisinger 2006)
     shaw_lambda_t: float = 0.3   # 시간창 가중치
     shaw_lambda_p: float = 0.2   # 우선순위 가중치
     shaw_phi: float = 3.0        # randomness 지수
+
+    @classmethod
+    def from_yaml(
+        cls,
+        path: str = "configs/shaw_params.yaml",
+        **kwargs,
+    ) -> "ALNSConfig":
+        """YAML 파라미터 파일에서 Shaw lambda를 읽어 ALNSConfig 생성.
+
+        YAML 파일 없으면 원논문 기본값(0.5, 0.3, 0.2) fallback.
+
+        Args:
+            path: shaw_params.yaml 경로 (scripts/fit_shaw_parameters.py 출력).
+            **kwargs: 추가 필드 override (max_iter 등).
+
+        Example:
+            cfg = ALNSConfig.from_yaml()
+            # configs/shaw_params.yaml 에서 lambda_d=0.0, lambda_t=1.0 등 로드
+        """
+        from libs.utils.param_loader import load_shaw_params
+
+        p = load_shaw_params(path)
+        return cls(
+            shaw_lambda_d=p["lambda_d"],
+            shaw_lambda_t=p["lambda_t"],
+            shaw_lambda_p=p["lambda_p"],
+            **kwargs,
+        )
 
 
 # Adaptive Weight 점수 상수 (Ropke & Pisinger 2006)

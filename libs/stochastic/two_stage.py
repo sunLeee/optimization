@@ -41,12 +41,16 @@ from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
 
 @dataclass
 class TwoStageConfig:
-    """SAA 파라미터."""
+    """SAA 파라미터.
+
+    기본값 = 데이터-없음 fallback (AW-010).
+    실측값 적용 시 from_yaml("configs/eta_params.yaml") 사용.
+    """
     n_scenarios: int = 50              # K: SAA 시나리오 수
-    eta_mu_log: float = 4.015          # Log-normal μ (로그 스케일) — 실측: 2024-06 부산항 N=240 MLE (ADR-001)
-    eta_sigma_log: float = 1.363       # Log-normal σ (로그 스케일) — 실측: 2024-06 부산항 N=240 MLE (ADR-001)
-    eta_clip_min_h: float = -6.0       # 절단 하한 — 실측 ±6h 커버율 89.6% (AW-010, ADR-001)
-    eta_clip_max_h: float = 6.0        # 절단 상한
+    eta_mu_log: float = 0.1            # Log-normal μ (로그 스케일) — 데이터 없음 기본값
+    eta_sigma_log: float = 0.5         # Log-normal σ (로그 스케일) — 데이터 없음 기본값
+    eta_clip_min_h: float = -2.0       # 절단 하한 (AW-010 데이터-없음 기준)
+    eta_clip_max_h: float = 2.0        # 절단 상한
     seed: int = 42
     n_workers: int | None = None       # None → min(K, cpu_count())
     solver_time_limit_sec: float = 30.0
@@ -54,6 +58,35 @@ class TwoStageConfig:
     w2: float = 0.01
     alpha_fuel: float = 0.5
     gamma: float = 2.5
+
+    @classmethod
+    def from_yaml(
+        cls,
+        path: str = "configs/eta_params.yaml",
+        **kwargs: Any,
+    ) -> "TwoStageConfig":
+        """YAML 파라미터 파일에서 ETA 분포값을 읽어 TwoStageConfig 생성.
+
+        YAML 파일 없으면 데이터-없음 기본값으로 fallback (AW-010).
+
+        Args:
+            path: eta_params.yaml 경로 (scripts/fit_eta_parameters.py 출력).
+            **kwargs: 추가 필드 override (n_scenarios 등).
+
+        Example:
+            cfg = TwoStageConfig.from_yaml()
+            # configs/eta_params.yaml 에서 mu_log=4.015, sigma_log=1.363 등 로드
+        """
+        from libs.utils.param_loader import load_eta_params
+
+        p = load_eta_params(path)
+        return cls(
+            eta_mu_log=p["mu_log"],
+            eta_sigma_log=p["sigma_log"],
+            eta_clip_min_h=p["clip_min_h"],
+            eta_clip_max_h=p["clip_max_h"],
+            **kwargs,
+        )
 
 
 @dataclass
@@ -79,21 +112,20 @@ class TwoStageResult:
 def generate_eta_scenarios(
     n_vessels: int,
     n_scenarios: int,
-    mu_log: float = 4.015,
-    sigma_log: float = 1.363,
-    clip_min_h: float = -6.0,
-    clip_max_h: float = 6.0,
+    mu_log: float = 0.1,
+    sigma_log: float = 0.5,
+    clip_min_h: float = -2.0,
+    clip_max_h: float = 2.0,
     seed: int = 42,
 ) -> np.ndarray:
     """ETA 지연 시나리오 생성 (n_scenarios × n_vessels 행렬).
 
     분포: TruncatedLogNormal(μ, σ) + 음수 지연(조기 도착) 지원
-    절단: [-6h, +6h] — 실측 89.6% 커버 (AW-010, ADR-001)
+    기본값 = 데이터-없음 fallback (AW-010).
+    실측값 적용: TwoStageConfig.from_yaml() 후 cfg 필드를 직접 전달.
 
-    파라미터 출처:
-        2024-06 부산항 실데이터 N=336건 MLE 피팅 (2026-03-21)
-        mu_log=4.015, sigma_log=1.363 → 지연 중앙값 55.4분
-        지연 비율 71.4%, 조기 도착 28.6%
+    실측값 예시 (2024-06 부산항, ADR-001):
+        mu_log=4.015, sigma_log=1.363, clip=±6h, 지연 중앙값 55.4분
 
     Returns:
         delays: shape (n_scenarios, n_vessels), unit: hours

@@ -1,0 +1,11 @@
+eta:
+  mu_log: 4.0153
+  sigma_log: 1.3625
+  clip_min_h: -6.0
+  clip_max_h: 6.0
+  delay_ratio: 0.7143
+  n_samples: 336
+  data_source: data/raw/scheduling/data/2024-06_SchData.csv
+  fitted_at: '2026-03-21T14:20:52Z'
+  method: Log-normal MLE on positive delays (AW-010)
+  reference: 'ADR-001: docs/adr/ADR-001-eta-distribution-parameters.md'
