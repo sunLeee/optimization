@@ -55,6 +55,7 @@ def run_benders(
     gamma: float,
     max_iter: int = 50,
     time_limit_sec: int = 1800,
+    use_speed_opt: bool = False,
 ) -> dict:
     """Benders 벤치마크 실행."""
     windows = make_windows(n, n_berths)
@@ -68,6 +69,7 @@ def run_benders(
         alpha=0.5,
         gamma=gamma,
         v_eco=10.0,
+        use_speed_opt=use_speed_opt,
     )
     solver = BendersDecomposition(windows, tugs, berths, cfg=cfg)
 
@@ -90,31 +92,31 @@ def run_benders(
 
 
 def compare_gamma(n: int, n_tugs: int, n_berths: int) -> None:
-    """v² vs v^2.5 연료비 오차 측정 (Phase 3b 필요성 판단)."""
+    """Phase 3a(v² 고정속도) vs Phase 3b(v^2.5 속도최적화) 연료비 오차 측정."""
     print(f"\n{'='*60}")
-    print(f"γ=2.0 vs γ=2.5 연료비 오차 비교 (n={n}, tugs={n_tugs})")
+    print(f"Phase 3a vs 3b 연료비 비교 (n={n}, tugs={n_tugs})")
     print(f"{'='*60}")
 
-    r2 = run_benders(n, n_tugs, n_berths, gamma=2.0)
-    r25 = run_benders(n, n_tugs, n_berths, gamma=2.5)
+    r3a = run_benders(n, n_tugs, n_berths, gamma=2.5, use_speed_opt=False)
+    r3b = run_benders(n, n_tugs, n_berths, gamma=2.5, use_speed_opt=True)
 
-    print(f"\n[γ=2.0]  cost={r2['total_cost']:.4f}, fuel={r2['fuel_cost_mt']:.4f}MT, "
-          f"gap={r2['gap']:.3f}, iter={r2['iterations']}, time={r2['elapsed_sec']:.2f}s")
-    print(f"[γ=2.5]  cost={r25['total_cost']:.4f}, fuel={r25['fuel_cost_mt']:.4f}MT, "
-          f"gap={r25['gap']:.3f}, iter={r25['iterations']}, time={r25['elapsed_sec']:.2f}s")
+    print(f"\n[Phase 3a] cost={r3a['total_cost']:.4f}, fuel={r3a['fuel_cost_mt']:.4f}MT, "
+          f"gap={r3a['gap']:.3f}, time={r3a['elapsed_sec']:.2f}s")
+    print(f"[Phase 3b] cost={r3b['total_cost']:.4f}, fuel={r3b['fuel_cost_mt']:.4f}MT, "
+          f"gap={r3b['gap']:.3f}, time={r3b['elapsed_sec']:.2f}s")
 
-    fuel2 = r2["fuel_cost_mt"]
-    fuel25 = r25["fuel_cost_mt"]
-    if fuel25 > 1e-9:
-        rel_err = abs(fuel25 - fuel2) / fuel25
-        print(f"\n연료비 상대 오차: {rel_err:.1%}")
+    fuel3a = r3a["fuel_cost_mt"]
+    fuel3b = r3b["fuel_cost_mt"]
+    if fuel3a > 1e-9:
+        improvement = (fuel3a - fuel3b) / fuel3a
+        print(f"\nPhase 3b 연료비 개선: {improvement:.1%}")
         print()
-        if rel_err > 0.10:
-            print("→ 오차 > 10%: Phase 3b(v^2.5 OA) 진행 권장")
+        if improvement > 0.01:
+            print("→ 개선 > 1%: Phase 3b 효과 확인")
         else:
-            print("→ 오차 ≤ 10%: Phase 3a(v² QP)로 충분, Phase 3b 불필요")
+            print("→ 개선 ≤ 1%: Phase 3a로 충분")
     else:
-        print("→ 연료비 0 (단거리 시나리오): 오차 측정 불가")
+        print("→ 연료비 0 (단거리 시나리오): 비교 불가")
 
 
 def run_performance(n: int, n_tugs: int, n_berths: int) -> None:

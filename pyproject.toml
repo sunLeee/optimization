@@ -1,6 +1,10 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["libs*"]
 
 [project]
 name = "harbor-optimization"
@@ -8,6 +12,18 @@ version = "0.1.0"
 description = "Harbor tugboat and vessel schedule/route/fuel optimization"
 requires-python = ">=3.11"
 readme = "README.md"
+dependencies = [
+    "pyomo>=6.7",
+    "highspy>=1.7",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "cvxpy>=1.4",
+    "cyipopt>=0.3",
+]
+
+[project.scripts]
+benchmark-benders = "scripts.benchmark_benders:main"
+run-simulation   = "scripts.run_simulation:main"
 
 [tool.ruff]
 line-length = 79

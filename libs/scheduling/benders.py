@@ -54,6 +54,7 @@ class BendersConfig:
     gamma: float = 2.5               # 속도 지수 (AW-006)
     v_eco: float = 10.0              # eco-speed (kn)
     fallback_to_alns: bool = True    # gap 미달 시 ALNS fallback (Phase 3b 전)
+    use_speed_opt: bool = False      # Phase 3b: EcoSpeedOptimizer(v^2.5) 사용
 
 
 @dataclass
@@ -305,6 +306,36 @@ class BendersDecomposition:
                         priority=w.priority,
                     ))
 
+        # Phase 3b: EcoSpeedOptimizer로 v^2.5 정확 연료비 재계산
+        if cfg.use_speed_opt:
+            try:
+                from libs.fuel.eco_speed import EcoSpeedOptimizer
+                from libs.utils.constants import DEPOT as _DEPOT
+                eco = EcoSpeedOptimizer(alpha=cfg.alpha, gamma=cfg.gamma,
+                                        v_eco=cfg.v_eco)
+                # 경로 구성
+                phase3b_arcs: list[tuple[str, str]] = []
+                for k in K:
+                    prev = _DEPOT
+                    for j in sorted(
+                        [s for s in spec_list if s.tug_id == k],
+                        key=lambda s: s.scheduled_start,
+                    ):
+                        phase3b_arcs.append((prev, j.vessel_id))
+                        prev = j.vessel_id
+                # 시간 예산 (hours): 도착 시각 기반
+                budgets: dict[tuple[str, str], float] = {}
+                for arc in phase3b_arcs:
+                    d = self._distances.get(arc, 0.0)
+                    if d > 1e-6:
+                        # 최소 이동 시간 예산 (eco-speed 기준 여유 10%)
+                        budgets[arc] = d / cfg.v_eco * 1.1
+                speed_sol = eco.optimize(phase3b_arcs, self._distances, budgets)
+                if speed_sol.status == "optimal":
+                    fuel_cost = speed_sol.total_fuel
+            except Exception:
+                pass  # Phase 3b 실패 시 Phase 3a 연료비 유지
+
         sub_cost = cfg.w1 * waiting_cost + cfg.w2 * fuel_cost
         return sub_cost, sub_cost, spec_list
 
@@ -483,16 +514,48 @@ class BendersDecomposition:
         self,
         assignments: list[SchedulingToRoutingSpec],
     ) -> tuple[float, float, float]:
-        """배정 리스트에서 비용 분해."""
+        """배정 리스트에서 비용 분해.
+
+        Phase 3b (use_speed_opt=True): EcoSpeedOptimizer(v^2.5)로 연료비 계산.
+        Phase 3a (use_speed_opt=False): 고정 v_eco로 계산.
+        """
         cfg = self.cfg
         waiting = sum(
             spec.priority * max(0.0, spec.scheduled_start - spec.time_window.earliest_start) / 60.0
             for spec in assignments
         )
+
         fuel = 0.0
-        for spec in assignments:
-            # depot → pickup 거리
-            d = self._distances.get((DEPOT, spec.vessel_id), 0.0)
-            fuel += cfg.alpha * (cfg.v_eco ** cfg.gamma) * d
+        if cfg.use_speed_opt:
+            # Phase 3b: EcoSpeedOptimizer로 v^2.5 정확 연료비
+            try:
+                from libs.fuel.eco_speed import EcoSpeedOptimizer
+                eco = EcoSpeedOptimizer(alpha=cfg.alpha, gamma=cfg.gamma, v_eco=cfg.v_eco)
+                # 예인선별 경로 아크 구성
+                tug_seqs: dict[str, list[SchedulingToRoutingSpec]] = {}
+                for spec in assignments:
+                    tug_seqs.setdefault(spec.tug_id, []).append(spec)
+                arcs: list[tuple[str, str]] = []
+                for k, specs in tug_seqs.items():
+                    prev = DEPOT
+                    for s in sorted(specs, key=lambda x: x.scheduled_start):
+                        arcs.append((prev, s.vessel_id))
+                        prev = s.vessel_id
+                speed_sol = eco.optimize(arcs, self._distances, None)
+                if speed_sol.status == "optimal":
+                    fuel = speed_sol.total_fuel
+                else:
+                    raise ValueError("speed_opt infeasible")
+            except Exception:
+                # fallback: 고정 v_eco
+                for spec in assignments:
+                    d = self._distances.get((DEPOT, spec.vessel_id), 0.0)
+                    fuel += cfg.alpha * (cfg.v_eco ** cfg.gamma) * d
+        else:
+            # Phase 3a: 고정 v_eco
+            for spec in assignments:
+                d = self._distances.get((DEPOT, spec.vessel_id), 0.0)
+                fuel += cfg.alpha * (cfg.v_eco ** cfg.gamma) * d
+
         total = cfg.w1 * waiting + cfg.w2 * fuel
         return total, waiting, fuel
