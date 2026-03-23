@@ -1,0 +1,13 @@
+﻿solver,objective,dist_nm,idle_h,wait_h,fuel_mt,objective_value,solve_time_sec,optimality_gap,n_samples,error
+MILP-Tier1,OBJ-A MinWait,0.0,4.8,0.0,0.0,0.0,0.1332,0.0,8,
+MILP-Tier1,OBJ-B MinIdle,0.0,4.8,0.0,0.0,4.8,0.1022,0.0,8,
+MILP-Tier1,"OBJ-C MinComposite(w2=0.5,w3=0.5)",0.0,4.8,0.0,0.0,2.4,0.1013,0.0,8,
+MILP-Tier1,OBJ-D MinAll(λ=1.0),0.0,4.8,0.0,0.0,4.8,0.1034,0.0,8,
+ALNS-Tier2,OBJ-A MinWait,0.0,84.4667,0.0,0.0,0.0,1.0346,0.0,30,
+ALNS-Tier2,OBJ-B MinIdle,0.0,84.4667,0.0,0.0,84.466667,0.9797,0.0,30,
+ALNS-Tier2,"OBJ-C MinComposite(w2=0.5,w3=0.5)",0.0,84.4667,0.0,0.0,42.233333,1.009,0.0,30,
+ALNS-Tier2,OBJ-D MinAll(λ=1.0),0.0,84.4667,0.0,0.0,84.466667,1.0086,0.0,30,
+Benders-Tier3,OBJ-A MinWait,0.0,116.8167,189.9833,0.0,189.983333,0.0854,0.0,80,
+Benders-Tier3,OBJ-B MinIdle,0.0,116.8167,189.9833,0.0,116.816667,0.09,0.0,80,
+Benders-Tier3,"OBJ-C MinComposite(w2=0.5,w3=0.5)",0.0,116.8167,189.9833,0.0,153.4,0.1113,0.0,80,
+Benders-Tier3,OBJ-D MinAll(λ=1.0),0.0,116.8167,189.9833,0.0,306.8,0.0909,0.0,80,

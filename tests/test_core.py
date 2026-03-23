@@ -56,9 +56,10 @@ def test_fuel_consumption():
     assert actual == pytest.approx(expected)
 
 def test_big_m_calculation():
-    # verify M=1020 for toy_n5
+    # M = max(latest_start + service_duration) — 절대값 기준
+    # toy_n5: max(l+d) = 1080 (M >= max(e)=60 보장)
     m = _compute_big_m(TIME_WINDOWS)
-    assert m == 1020.0
+    assert m == 1080.0
 
 def test_greedy_initial_solution():
     # verify all vessels assigned

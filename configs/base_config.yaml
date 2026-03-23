@@ -1,0 +1,68 @@
+# configs/base_config.yaml
+# 알고리즘 파라미터 통합 설정 파일.
+# 수동으로 유지·버전관리. 하드코딩 금지 (AW-006, AW-007).
+#
+# 로드 방법:
+#   BendersConfig.from_yaml()           → benders 섹션
+#   ALNSConfig.from_yaml()              → shaw_params.yaml (Shaw lambda)
+#   RollingHorizonConfig.from_yaml()    → rolling_horizon 섹션
+#   TwoStageConfig.from_yaml()          → eta_params.yaml (ETA)
+#
+# 자동 피팅 파라미터 (별도 YAML):
+#   configs/eta_params.yaml   ← make fit-eta  (ETA 지연 분포)
+#   configs/shaw_params.yaml  ← make fit-shaw (Shaw lambda)
+#
+# 참조: AW-005 (Tier 경계), AW-006 (γ=2.5 고정)
+
+# ── Benders Decomposition (Tier 3, n > 50) ─────────────────────
+benders:
+  max_iter: 50              # 최대 반복 수
+  gap_tol: 0.05             # 수렴 허용 gap (5%)
+  time_limit_sec: 1800      # 전체 시간 제한 (30분)
+  master_time_limit: 60     # Master MIP 시간 제한 (초)
+  w1: 1.0                   # 대기시간 가중치
+  w2: 0.01                  # 연료 가중치
+  alpha: 0.5                # 연료 계수 (AW-006)
+  gamma: 2.5                # 속도 지수 v^γ (AW-006 고정)
+  v_eco: 10.0               # eco-speed (knots)
+  fallback_to_alns: true    # gap 미달 시 ALNS fallback
+  use_speed_opt: false      # Phase 3b: EcoSpeedOptimizer 사용 여부
+
+# ── ALNS (Tier 2, n = 10~50) ───────────────────────────────────
+# Shaw lambda (shaw_lambda_d/t/p)는 configs/shaw_params.yaml에서 관리.
+alns:
+  max_iter: 200             # 최대 내부 반복 수
+  max_outer_iter: 20        # eco-speed alternating 최대 횟수
+  tol: 0.001                # 수렴 임계값 (상대 오차)
+  tol_window: 3             # oscillation 감지 window 크기
+  temperature: 0.1          # SA 초기 온도
+  cooling: 0.995            # SA 냉각 비율
+  destroy_fraction: 0.3     # 제거 비율 (Shaw 2019 권장)
+  w1: 1.0                   # 대기시간 가중치
+  w2: 0.01                  # 연료 가중치
+  seed: 42                  # 재현성 (AW-005)
+  segment_size: 100         # Adaptive Weight 갱신 주기
+  rho: 0.1                  # Adaptive Weight 학습률
+  shaw_phi: 3.0             # Shaw randomness 지수
+
+# ── Rolling Horizon (실시간 MPC Orchestrator) ───────────────────
+rolling_horizon:
+  horizon_h: 2.0            # 재최적화 수평선 (hours)
+  dt_h: 0.5                 # 재최적화 주기 (hours)
+  tier1_threshold: 10       # n < 10: Tier 1 MILP
+  tier2_threshold: 50       # n < 50: Tier 2 ALNS
+  w1: 1.0                   # 대기시간 가중치
+  w2: 0.01                  # 연료 가중치
+  alpha: 0.5                # 연료 계수
+  max_steps: 48             # 최대 타임스텝 (48 × 0.5h = 24h)
+
+# ── 2-Stage SAA (사전 계획) ─────────────────────────────────────
+# ETA 분포 파라미터(eta_mu_log 등)는 configs/eta_params.yaml에서 관리.
+two_stage:
+  n_scenarios: 50           # K: SAA 시나리오 수
+  seed: 42                  # 재현성
+  solver_time_limit_sec: 30.0  # 시나리오별 솔버 제한 (초)
+  w1: 1.0                   # 대기시간 가중치
+  w2: 0.01                  # 연료 가중치
+  alpha_fuel: 0.5           # 연료 계수
+  gamma: 2.5                # 속도 지수 (AW-006 고정)

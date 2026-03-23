@@ -22,17 +22,15 @@ import random
 import time
 import warnings
 from collections import deque
-from dataclasses import dataclass, field
-from typing import Callable
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.optimize import differential_evolution
 
-from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
-from libs.utils.geo import haversine_nm
+from libs.fuel.eco_speed import EcoSpeedOptimizer
 from libs.utils.constants import DEPOT
-from libs.fuel.eco_speed import EcoSpeedOptimizer, SpeedSolution
-
+from libs.utils.geo import haversine_nm
+from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
 
 # ── 데이터 타입 ──────────────────────────────────────────────
 
@@ -79,7 +77,7 @@ class ALNSConfig:
         cls,
         path: str = "configs/shaw_params.yaml",
         **kwargs,
-    ) -> "ALNSConfig":
+    ) -> ALNSConfig:
         """YAML 파라미터 파일에서 Shaw lambda를 읽어 ALNSConfig 생성.
 
         YAML 파일 없으면 원논문 기본값(0.5, 0.3, 0.2) fallback.
@@ -291,6 +289,7 @@ def destroy_shaw(
          for i in all_jobs for j in all_jobs if i != j),
         default=1.0,
     )
+    d_max = max(d_max, 1e-9)  # ZeroDivisionError 방지 (동일 좌표 시)
     t_max = max((wmap[j].earliest_start for j in all_jobs), default=1.0) - \
             min((wmap[j].earliest_start for j in all_jobs), default=0.0)
     p_max = max((wmap[j].priority for j in all_jobs), default=1)
@@ -540,7 +539,7 @@ def greedy_initial_solution(
 ) -> dict[str, list[str]]:
     """earliest_start 오름차순으로 예인선에 순차 배정 (초기해)."""
     routes: dict[str, list[str]] = {k: [DEPOT] for k in tug_fleet}
-    tug_free_at = {k: 0.0 for k in tug_fleet}
+    tug_free_at = dict.fromkeys(tug_fleet, 0.0)
 
     sorted_jobs = sorted(windows, key=lambda w: w.earliest_start)
     for w in sorted_jobs:

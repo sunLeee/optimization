@@ -1,0 +1,15 @@
+{
+  "n_executed_total": 336,
+  "n_single_tug": 66,
+  "epoch_utc": "2024-06-08T10:26:18+00:00",
+  "kpi": {
+    "wait_h": 161.55,
+    "idle_h": 3032.03,
+    "objective_value": 161.55
+  },
+  "stats": {
+    "avg_delay_min": 115.24,
+    "max_delay_min": 989.6
+  },
+  "formula": "wait_h = sum(priority * max(0, actual_start - initial_schedule) / 60)"
+}

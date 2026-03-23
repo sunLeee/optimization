@@ -1,0 +1,303 @@
+{
+  "epoch_utc": "2024-06-07T15:00:00+00:00",
+  "total_requests": 967,
+  "single_tug_requests": 291,
+  "skipped_multi_tug": 676,
+  "skipped_unknown_berth": 0,
+  "days_processed": 24,
+  "by_day": [
+    {
+      "date": "2024-06-07",
+      "n": 7,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.0994,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 7.088,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-08",
+      "n": 9,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.1654,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 20.9947,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-09",
+      "n": 11,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.1954,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 36.0848,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-10",
+      "n": 13,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.3301,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 14.8784,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-11",
+      "n": 17,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.8357,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 49.2473,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-12",
+      "n": 11,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.2307,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 27.2349,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-13",
+      "n": 17,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.6927,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 44.8173,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-14",
+      "n": 13,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.6471,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 24.0395,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-15",
+      "n": 10,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.225,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 18.522,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-16",
+      "n": 14,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.9331,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 35.1569,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-17",
+      "n": 10,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.2001,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 33.617,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-18",
+      "n": 13,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.4453,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 23.3011,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-19",
+      "n": 12,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.359,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 31.8898,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-20",
+      "n": 13,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.2416,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 34.7211,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-21",
+      "n": 21,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 1.0384,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 42.9903,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-22",
+      "n": 16,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 3.5263,
+      "optimality_gap": 0.031169,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 28.6667,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-23",
+      "n": 8,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.1529,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 24.61,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-24",
+      "n": 10,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.229,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 33.452,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-25",
+      "n": 10,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.4723,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 13.6949,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-26",
+      "n": 9,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.137,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 22.9357,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-27",
+      "n": 11,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.2296,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 18.2126,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-28",
+      "n": 13,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.3321,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 17.7736,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-29",
+      "n": 15,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.7896,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 35.4054,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-06-30",
+      "n": 8,
+      "solver": "MILP-Tier1",
+      "solve_time_sec": 0.1396,
+      "optimality_gap": 0.0,
+      "kpi": {
+        "wait_h": 0.0,
+        "idle_h": 14.0682,
+        "objective_value": 0.0
+      }
+    }
+  ],
+  "total_kpi": {
+    "wait_h": 0.0,
+    "idle_h": 653.4022,
+    "objective_value": 0.0
+  }
+}

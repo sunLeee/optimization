@@ -19,10 +19,15 @@
 # 환경 설정
 uv sync
 
+# 파라미터 피팅 (실측 데이터 기반)
+make fit          # ETA + Shaw 동시 피팅
+
 # 벤치마크 실행 (Phase 3a vs 3b 비교)
+make benchmark-small   # n=12 빠른 비교
 uv run python scripts/benchmark_benders.py --n 12 --tugs 4 --berths 2 --compare-gamma
 
 # 품질 게이트
+make quality              # lint + typecheck + test
 bash .claude/check-criteria.sh --score   # ≥ 90 목표
 ```
 
@@ -46,18 +51,66 @@ uv pip install cyipopt
 
 ```
 harbor-optimization/
+├── configs/                  # 파라미터 설정 (YAML)
+│   ├── base_config.yaml      # 알고리즘 파라미터 통합 (수동 관리)
+│   ├── eta_params.yaml       # ETA 지연 분포 (make fit-eta 자동 생성)
+│   └── shaw_params.yaml      # Shaw lambda (make fit-shaw 자동 생성)
 ├── libs/                     # 최적화 라이브러리
-│   ├── utils/                # 공통 유틸 (geo, constants, 인터페이스)
+│   ├── utils/                # 공통 유틸 (geo, constants, 인터페이스, param_loader)
 │   ├── fuel/                 # 연료 모델 F(v,d)=α·v^2.5·d
 │   ├── scheduling/           # BAP, TSP-T MILP, Benders
 │   ├── routing/              # ALNS + eco-speed alternating
 │   ├── stochastic/           # Rolling Horizon, 2-stage SAA
 │   └── simulation/           # 에이전트 시뮬레이션 환경
 ├── scripts/                  # 실행 스크립트
-│   └── benchmark_benders.py  # Phase 3a/3b 비교 벤치마크
+│   ├── benchmark_benders.py  # Phase 3a/3b 비교 벤치마크
+│   ├── fit_eta_parameters.py # ETA 분포 MLE 피팅 → eta_params.yaml
+│   └── fit_shaw_parameters.py # Shaw lambda 피팅 → shaw_params.yaml
+├── Makefile                  # fit / test / lint / benchmark 타겟
 ├── docs/research/            # 수학적 formulation, 알고리즘 선택 가이드
 └── tests/                    # 단위·통합 테스트
 ```
+
+## YAML 파라미터 파이프라인
+
+하드코딩 없이 실측 데이터 기반 파라미터를 관리한다.
+
+```
+실측 데이터 (CSV)
+      │
+      ▼
+scripts/fit_*.py          ← make fit-eta / make fit-shaw
+      │
+      ▼
+configs/eta_params.yaml   ← ETA 지연 분포 (mu_log, sigma_log, clip)
+configs/shaw_params.yaml  ← Shaw lambda (lambda_d, lambda_t, lambda_p)
+configs/base_config.yaml  ← 알고리즘 파라미터 (수동 버전관리)
+      │
+      ▼
+Config.from_yaml()        ← TwoStageConfig / ALNSConfig / BendersConfig / RollingHorizonConfig
+```
+
+```python
+from libs.scheduling.benders import BendersConfig
+from libs.stochastic.rolling_horizon import RollingHorizonConfig
+from libs.stochastic.two_stage import TwoStageConfig
+from libs.routing.alns import ALNSConfig
+
+# 실측값 로드
+benders_cfg = BendersConfig.from_yaml()
+rh_cfg      = RollingHorizonConfig.from_yaml()
+ts_cfg      = TwoStageConfig.from_yaml()          # ETA 분포 포함
+alns_cfg    = ALNSConfig.from_yaml()              # Shaw lambda 포함
+
+# 필드 override 가능
+benders_cfg = BendersConfig.from_yaml(use_speed_opt=True)
+```
+
+| 파일 | 관리 방법 | 자동 생성 명령 |
+|------|----------|-------------|
+| `configs/base_config.yaml` | 수동 (버전관리) | — |
+| `configs/eta_params.yaml` | 자동 | `make fit-eta` |
+| `configs/shaw_params.yaml` | 자동 | `make fit-shaw` |
 
 ## Tier별 알고리즘 (AW-005)
 

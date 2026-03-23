@@ -1,0 +1,38 @@
+{
+  "date": "2024-06-07",
+  "n_vessels": 18,
+  "n_mc": 200,
+  "distribution": {
+    "mu_log": 4.015,
+    "sigma_log": 1.363,
+    "delay_prob": 0.714
+  },
+  "algorithms": {
+    "Greedy": {
+      "mean_wait_h": 21.8048,
+      "std_wait_h": 6.66,
+      "p50_wait_h": 21.0464,
+      "p95_wait_h": 33.7769,
+      "cvar95_wait_h": 37.3343,
+      "max_wait_h": 45.3502
+    },
+    "MILP": {
+      "mean_wait_h": 21.8048,
+      "std_wait_h": 6.66,
+      "p50_wait_h": 21.0464,
+      "p95_wait_h": 33.7769,
+      "cvar95_wait_h": 37.3343,
+      "max_wait_h": 45.3502
+    },
+    "ALNS": {
+      "mean_wait_h": 21.8048,
+      "std_wait_h": 6.66,
+      "p50_wait_h": 21.0464,
+      "p95_wait_h": 33.7769,
+      "cvar95_wait_h": 37.3343,
+      "max_wait_h": 45.3502
+    }
+  },
+  "most_robust": "Greedy",
+  "most_robust_cvar95": 37.3343
+}

@@ -8,3 +8,17 @@ __pycache__/
 .pytest_cache/
 uv.lock
 *.egg-info/
+
+# 더미 데이터 (합성 테스트 데이터)
+data/dummy*/
+data/raw/scheduling/.omc/
+
+# 결과 바이너리 (PDF, PNG, GIF — 소스에서 재생성 가능)
+results/*.pdf
+results/*.png
+results/*.gif
+results/*.mp4
+
+# OMC 상태 파일
+.omc/plans/
+.omc/specs/

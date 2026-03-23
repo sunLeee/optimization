@@ -3,6 +3,7 @@ BAP → TSP-T 경계 인터페이스 데이터 계약.
 BerthAllocationModel 출력 / TugScheduleModel 입력 타입.
 """
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -19,6 +20,13 @@ class TimeWindowSpec:
     latest_start: float    # l_j(z) from BAP, minutes
     service_duration: float  # minutes
     priority: int = 1      # 우선순위 가중치 (목적함수: priority × wait_hours)
+
+    # ── 실데이터 확장 필드 (선택, 기존 호출 코드 영향 없음) ──
+    travel_to_site_min: float = 0.0   # 정계지 → 작업 시작지 이동시간 (분)
+    return_to_base_min: float = 0.0   # 작업 종료지 → 정계지 귀환시간 (분)
+    anchorage_id: str = ""            # 예선 출발/귀환 정계지 이름
+    pilot_code: str = ""              # 도선사 코드 (이력 추적용)
+    tonnage_mt: float = 0.0           # 선박 톤수 (metric tons)
 
 
 @dataclass

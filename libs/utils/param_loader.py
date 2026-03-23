@@ -90,3 +90,69 @@ def load_shaw_params(
     data = raw.get("shaw", raw)
     result = {**_DEFAULT_SHAW, **data}
     return result
+
+
+def load_base_config(
+    path: str | Path = "configs/base_config.yaml",
+) -> dict[str, Any]:
+    """base_config.yaml 전체를 dict로 반환.
+
+    섹션 키: benders, alns, rolling_horizon, two_stage.
+    파일 없으면 빈 dict 반환 (각 Config 기본값 사용).
+
+    Returns:
+        dict with section keys as top-level keys
+    """
+    return _load_yaml(path)
+
+
+def load_benders_params(
+    path: str | Path = "configs/base_config.yaml",
+) -> dict[str, Any]:
+    """BendersConfig용 파라미터 로드.
+
+    Returns:
+        dict with keys matching BendersConfig fields
+    """
+    raw = load_base_config(path)
+    return raw.get("benders", {})
+
+
+def load_alns_base_params(
+    path: str | Path = "configs/base_config.yaml",
+) -> dict[str, Any]:
+    """ALNSConfig 기본 파라미터 로드 (Shaw lambda 제외).
+
+    Shaw lambda는 load_shaw_params()로 별도 로드.
+
+    Returns:
+        dict with keys matching ALNSConfig fields (excluding shaw_lambda_*)
+    """
+    raw = load_base_config(path)
+    return raw.get("alns", {})
+
+
+def load_rolling_horizon_params(
+    path: str | Path = "configs/base_config.yaml",
+) -> dict[str, Any]:
+    """RollingHorizonConfig용 파라미터 로드.
+
+    Returns:
+        dict with keys matching RollingHorizonConfig fields
+    """
+    raw = load_base_config(path)
+    return raw.get("rolling_horizon", {})
+
+
+def load_two_stage_base_params(
+    path: str | Path = "configs/base_config.yaml",
+) -> dict[str, Any]:
+    """TwoStageConfig 기본 파라미터 로드 (ETA 분포 제외).
+
+    ETA 분포 파라미터는 load_eta_params()로 별도 로드.
+
+    Returns:
+        dict with keys matching TwoStageConfig fields (excluding eta_*)
+    """
+    raw = load_base_config(path)
+    return raw.get("two_stage", {})

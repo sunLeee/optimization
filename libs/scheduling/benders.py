@@ -56,6 +56,30 @@ class BendersConfig:
     fallback_to_alns: bool = True    # gap 미달 시 ALNS fallback (Phase 3b 전)
     use_speed_opt: bool = False      # Phase 3b: EcoSpeedOptimizer(v^2.5) 사용
 
+    @classmethod
+    def from_yaml(
+        cls,
+        path: str = "configs/base_config.yaml",
+        **kwargs: Any,
+    ) -> "BendersConfig":
+        """base_config.yaml의 benders 섹션에서 BendersConfig 생성.
+
+        YAML 파일 없으면 dataclass 기본값 사용.
+
+        Args:
+            path: base_config.yaml 경로.
+            **kwargs: 추가 필드 override (use_speed_opt 등).
+
+        Example:
+            cfg = BendersConfig.from_yaml()
+            cfg = BendersConfig.from_yaml(use_speed_opt=True)
+        """
+        from libs.utils.param_loader import load_benders_params
+
+        p = load_benders_params(path)
+        p.update(kwargs)
+        return cls(**{k: v for k, v in p.items() if hasattr(cls, k)})
+
 
 @dataclass
 class BendersResult:

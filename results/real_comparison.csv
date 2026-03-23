@@ -1,0 +1,7 @@
+﻿metric,baseline,optimized,improvement_pct
+Priority-weighted wait time (h),161.55,0.0,100.0
+Tug idle time (h),3032.03,653.4022,78.45
+Objective value,161.55,0.0,100.0
+n_single_tug_baseline,66,291,—
+solver_used,Human dispatch,MILP/ALNS per day,—
+days_processed,—,24,—

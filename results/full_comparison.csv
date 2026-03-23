@@ -1,0 +1,6 @@
+﻿metric,baseline,optimized,improvement_pct,note
+wait_h (total),580.0108,0.9726,99.83,
+avg_wait_min per vessel,103.57,0.06,99.94,
+n_requests,336,967,—,WARNING: 다른 모집단 (교집합=336건)
+n_matched (vessel_name),336,—,—,336/336 = 100.0%
+days_processed,—,24,—,

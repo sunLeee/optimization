@@ -1,0 +1,38 @@
+{
+  "total_requests": 103,
+  "days_processed": 2,
+  "total_tug_slots": 127,
+  "by_day": [
+    {
+      "date": "2024-07-01",
+      "n_jobs": 33,
+      "avg_required_tugs": 2.27,
+      "total_tug_slots": 75,
+      "solver": "Greedy",
+      "optimality_gap": null,
+      "solve_time_sec": 61.355,
+      "kpi": {
+        "wait_h": 0.0,
+        "objective_value": 0.0
+      }
+    },
+    {
+      "date": "2024-07-02",
+      "n_jobs": 26,
+      "avg_required_tugs": 2.0,
+      "total_tug_slots": 52,
+      "solver": "Greedy",
+      "optimality_gap": null,
+      "solve_time_sec": 60.998,
+      "kpi": {
+        "wait_h": 0.1139,
+        "objective_value": 6.833
+      }
+    }
+  ],
+  "total_kpi": {
+    "wait_h": 0.1139,
+    "objective_value": 6.833
+  },
+  "note": "AW-005: n_jobs > 50이면 Greedy fallback 사용"
+}

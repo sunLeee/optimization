@@ -51,6 +51,30 @@ class RollingHorizonConfig:
     alpha: float = 0.5              # 연료 계수
     max_steps: int = 48             # 최대 타임스텝 (48 × 0.5h = 24h)
 
+    @classmethod
+    def from_yaml(
+        cls,
+        path: str = "configs/base_config.yaml",
+        **kwargs,
+    ) -> "RollingHorizonConfig":
+        """base_config.yaml의 rolling_horizon 섹션에서 RollingHorizonConfig 생성.
+
+        YAML 파일 없으면 dataclass 기본값 사용.
+
+        Args:
+            path: base_config.yaml 경로.
+            **kwargs: 추가 필드 override (horizon_h 등).
+
+        Example:
+            cfg = RollingHorizonConfig.from_yaml()
+            cfg = RollingHorizonConfig.from_yaml(horizon_h=4.0)
+        """
+        from libs.utils.param_loader import load_rolling_horizon_params
+
+        p = load_rolling_horizon_params(path)
+        p.update(kwargs)
+        return cls(**{k: v for k, v in p.items() if hasattr(cls, k)})
+
 
 @dataclass
 class DispatchDecision:

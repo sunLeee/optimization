@@ -1,0 +1,4 @@
+﻿solver,n,hist_wait_h,opt_wait_h,reduction_pct,hist_raw_wait_min_per_vessel,opt_raw_wait_min_per_vessel,hist_idle_h,opt_idle_h,optimality_gap,solve_time_sec
+MILP-Tier1,8,11.0647,0.0,100.0,47.43,0.0,7.2003,5.35,0.0,0.0217
+ALNS-Tier2,30,40.9764,1.0167,97.52,53.07,1.79,54.9175,31.9667,0.0,1.1082
+Benders-Tier3,80,205.1836,627.8,-205.97,70.34,289.26,89.05,27.1833,0.005,0.0231

@@ -32,18 +32,17 @@ Pyomo + HiGHS 기반 예인선 스케줄링 문제 (Tier 1, n < 10).
 """
 from __future__ import annotations
 
-import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
-from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
-from libs.utils.geo import haversine_nm
 from libs.utils.constants import DEPOT
+from libs.utils.geo import haversine_nm
+from libs.utils.time_window import SchedulingToRoutingSpec, TimeWindowSpec
 
 try:
     import pyomo.environ as pyo
-    from pyomo.opt import SolverStatus, TerminationCondition
+    from pyomo.opt import SolverStatus, TerminationCondition  # noqa: F401
     _HAS_PYOMO = True
 except ImportError:
     _HAS_PYOMO = False
@@ -64,14 +63,15 @@ class SolverResult:
 def _compute_big_m(windows: list[TimeWindowSpec]) -> float:
     """데이터 기반 Big-M 계산.
 
-    M = max(latest_start + service_duration) - min(earliest_start)
+    M = max(latest_start + service_duration)
 
-    toy_n5 예상값: 1080 - 60 = 1020분
+    요구조건: M >= max(earliest_start) 보장
+    (제약 3a: s >= e*y, 제약 3c: s <= M*y → M >= e 필요)
+
+    toy_n5 예상값: 150 + 30 = 180분
+    실데이터(2024-06): ~942분
     """
-    return (
-        max(w.latest_start + w.service_duration for w in windows)
-        - min(w.earliest_start for w in windows)
-    )
+    return max(w.latest_start + w.service_duration for w in windows)
 
 
 class TugScheduleModel:
@@ -239,7 +239,7 @@ class TugScheduleModel:
         # ── 제약 (4): 순서 (Big-M MTZ 변형) ──
         speed_kn = 12.0  # eco-speed (Step 1 고정, 단위: knots)
         def c4_sequence(m, i, j, k):
-            if i == j or i == DEPOT:
+            if i in (j, DEPOT):
                 return pyo.Constraint.Skip
             # 해리/kn → hours → minutes
             travel_min = dist[(i, j)] / speed_kn * 60.0
@@ -348,12 +348,11 @@ class TugScheduleModel:
         # MILP 변수 미로드 시 그리디 폴백
         # (Pyomo 호환성 이슈 대비)
         if not assignments and solved:
-            tug_free = {k: 0.0 for k in K}
+            tug_free = dict.fromkeys(K, 0.0)
             sorted_jobs = sorted(J, key=lambda j: wmap[j].earliest_start)
             for j in sorted_jobs:
                 k = min(tug_free, key=tug_free.get)  # type: ignore
                 w = wmap[j]
-                prev = DEPOT  # depot 기준 이동시간
                 d_depot = self._dist.get((DEPOT, j), 0.0)
                 travel = d_depot / 10.0 * 60.0  # eco-speed 10kn
                 arrival = tug_free[k] + travel

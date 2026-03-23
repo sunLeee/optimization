@@ -1,0 +1,10 @@
+﻿scenario,algorithm,n_jobs,n_large_vessel,wait_h,avg_wait_min,bp_satisfied_pct,solver_used,solve_time_sec
+normal,MILP-BP,41,4,0.0,0.0,100.0,Greedy,32.028
+normal,BP-Greedy,41,4,2.3918,3.5,100.0,BP-Greedy,0.0
+normal,ALNS-BP,41,4,2.3918,3.5,100.0,ALNS-BP,0.003
+heavy,MILP-BP,65,37,0.0,0.0,100.0,Greedy,0.0
+heavy,BP-Greedy,65,37,205.7282,189.9,100.0,BP-Greedy,0.0
+heavy,ALNS-BP,65,37,205.7282,189.9,100.0,ALNS-BP,0.004
+large_vessel,MILP-BP,20,17,0.0,0.0,100.0,Greedy,0.73
+large_vessel,BP-Greedy,20,17,72.9301,218.79,100.0,BP-Greedy,0.0
+large_vessel,ALNS-BP,20,17,72.9301,218.79,100.0,ALNS-BP,0.001

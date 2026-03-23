@@ -40,7 +40,10 @@ with st.sidebar:
     max_required_tugs = st.slider("최대 예인선/선박", 1, 3, 1)
 
 # ── 탭 구성 ────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["시뮬레이션", "최적화 비교", "Phase 3"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "시뮬레이션", "최적화 비교", "Phase 3",
+    "실증 비교", "KPI 분포", "목적함수 가이드",
+])
 
 # ── 시뮬레이션 탭 ──────────────────────────────
 with tab1:
@@ -320,3 +323,126 @@ with tab3:
         st.metric("분포 타입", model.distribution_type)
     except ImportError:
         st.info("plotly 미설치: pip install plotly")
+
+# ── 실증 비교 탭 ─────────────────────────────────
+with tab4:
+    st.subheader("4종 목적함수 실증 비교 (N=336, 2024-06 부산항)")
+
+    import pathlib
+    result_path = pathlib.Path("results/objective_comparison.csv")
+
+    if result_path.exists():
+        df_exp = pd.read_csv(result_path)
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.dataframe(
+                df_exp[["objective", "idle_h", "wait_h", "objective_value",
+                         "solve_time_sec"]].round(4),
+                use_container_width=True,
+            )
+        with col_b:
+            try:
+                import plotly.express as px
+                fig = px.bar(
+                    df_exp,
+                    x="objective",
+                    y="objective_value",
+                    title="목적함수 값 비교",
+                    labels={"objective": "전략", "objective_value": "목적함수 값"},
+                    color="objective",
+                )
+                fig.update_layout(showlegend=False, height=350)
+                st.plotly_chart(fig, use_container_width=True)
+            except ImportError:
+                st.info("plotly 미설치")
+
+        st.caption(
+            "실행: `uv run python scripts/run_objective_experiment.py`  "
+            "→ `results/objective_comparison.csv`"
+        )
+    else:
+        st.info(
+            "실험 결과 없음. 아래 명령어로 생성하세요:\n\n"
+            "```bash\nmake experiment\n```"
+        )
+
+# ── KPI 분포 탭 ─────────────────────────────────
+with tab5:
+    st.subheader("KPI 분포 (N=336 실데이터 기반)")
+
+    result_path = pathlib.Path("results/objective_comparison.csv")
+    if result_path.exists():
+        df_kpi = pd.read_csv(result_path)
+
+        metrics = [("idle_h", "예인선 유휴시간 (h)"), ("wait_h", "선박 대기시간 (h)")]
+        for col_name, label in metrics:
+            st.markdown(f"**{label}**")
+            vals = df_kpi[["objective", col_name]]
+            try:
+                import plotly.express as px
+                fig = px.bar(
+                    vals, x="objective", y=col_name,
+                    labels={"objective": "전략", col_name: label},
+                    height=280,
+                )
+                fig.update_layout(showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+            except ImportError:
+                st.dataframe(vals.round(2), use_container_width=True)
+
+        st.caption(
+            "OBJ-A/B/C/D 모두 동일 데이터에서 KPI 집계 → "
+            "idle_h / wait_h 차이는 목적함수가 아닌 배정 고정값에 기인 (baseline)"
+        )
+    else:
+        st.info("실험 결과 없음. `make experiment` 실행 후 재방문하세요.")
+
+# ── 목적함수 가이드 탭 ───────────────────────────
+with tab6:
+    st.subheader("4종 목적함수 수식 가이드 (ADR-006)")
+
+    guide_data = {
+        "ID": ["OBJ-A", "OBJ-B", "OBJ-C", "OBJ-D"],
+        "클래스": [
+            "MinWaitObjective",
+            "MinIdleObjective",
+            "MinCompositeObjective(w2, w3)",
+            "MinAllObjective(lam, w_idle, w_wait)",
+        ],
+        "수식": [
+            "min Σ(priority × wait_h)",
+            "min Σ idle_h",
+            "min w2·idle_h + w3·priority×wait_h",
+            "w_idle·idle_h + w_wait·priority×wait_h + lam·dist_nm",
+        ],
+        "초점": [
+            "선박 대기시간 최소화",
+            "예인선 유휴시간 최소화",
+            "유휴+대기 가중합",
+            "유휴+대기+이동거리 사후집계",
+        ],
+        "비고": [
+            "우선순위 가중 대기",
+            "연료 효율 간접 개선",
+            "기본값 w2=w3=0.5",
+            "dist_nm=0.0 (백테스터 fallback)",
+        ],
+    }
+    st.dataframe(pd.DataFrame(guide_data), use_container_width=True)
+
+    st.markdown("### OBJ-D 주의사항")
+    st.info(
+        "백테스터(RealDataBacktester) 컨텍스트에서 dist_nm=0.0 (RouteResult 미제공).\n"
+        "Phase 2 완료 후 `inject_dist_nm(dist_nm)` 호출로 실제값 주입 가능.\n"
+        "상세: `docs/adr/ADR-006-objective-function-comparison.md`"
+    )
+
+    st.markdown("### 실행 예시")
+    st.code(
+        "uv run python scripts/run_objective_experiment.py \\\n"
+        "    --data data/raw/scheduling/data/2024-06_SchData.csv \\\n"
+        "    --out results/objective_comparison.csv \\\n"
+        "    --w2 0.5 --w3 0.5 --lam 1.0",
+        language="bash",
+    )

@@ -19,11 +19,21 @@ dependencies = [
     "scipy>=1.11",
     "cvxpy>=1.4",
     "cyipopt>=0.3",
+    "folium>=0.20.0",
+    "matplotlib>=3.10.8",
+    "moviepy>=2.2.1",
+    "reportlab>=4.4.10",
+    "openpyxl>=3.1.5",
 ]
 
 [project.scripts]
 benchmark-benders = "scripts.benchmark_benders:main"
 run-simulation   = "scripts.run_simulation:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
 
 [tool.ruff]
 line-length = 79
@@ -34,8 +44,15 @@ select = ["E", "F", "W", "I", "N", "UP", "ANN", "B", "C4", "SIM"]
 ignore = ["ANN101", "ANN102"]
 
 [tool.ruff.lint.per-file-ignores]
-"scripts/*" = ["ANN"]
+"scripts/*" = ["ANN", "E501"]
 "libs/stochastic/*" = ["ANN"]
+"libs/solver/*" = ["ANN", "E501"]
+"libs/visualization/*" = ["ANN", "E501"]
+"libs/routing/*" = ["ANN", "E501", "N806", "B007"]
+"libs/data/*" = ["ANN", "E501"]
+"libs/utils/travel_time.py" = ["ANN", "E501", "B007"]
+"libs/scheduling/*" = ["ANN", "E501", "N806", "F401", "F841", "SIM109"]
+"tests/*" = ["ANN", "E501"]
 
 [tool.mypy]
 python_version = "3.11"

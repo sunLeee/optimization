@@ -1,0 +1,232 @@
+{
+  "date": "2024-06-07",
+  "n_assignments": 18,
+  "feasibility": {
+    "overall": "INFEASIBLE",
+    "n_total_checks": 40,
+    "n_feasible": 29,
+    "n_infeasible": 11
+  },
+  "details": [
+    {
+      "tug": "뉴월미호",
+      "vessel": "XIN ZHONG RUI 7_4",
+      "scheduled_start": 0.0,
+      "earliest_arrival": -685.08,
+      "travel_from": "(37.450647, 126.594899)",
+      "travel_to": "N21",
+      "travel_min": 34.9,
+      "gap_min": 720.0,
+      "feasible": true
+    },
+    {
+      "tug": "뉴월미호",
+      "vessel": "수성 1호_7",
+      "scheduled_start": 120.0,
+      "earliest_arrival": 66.77,
+      "travel_from": "(37.463117, 126.596133)",
+      "travel_to": "SAMPYO",
+      "travel_min": 15.8,
+      "gap_min": 69.1,
+      "feasible": true
+    },
+    {
+      "tug": "뉴월미호",
+      "vessel": "XIN TAI PING_17",
+      "scheduled_start": 420.0,
+      "earliest_arrival": 242.45,
+      "travel_from": "(37.463117, 126.596133)",
+      "travel_to": "NPPS",
+      "travel_min": 76.9,
+      "gap_min": 254.5,
+      "feasible": true
+    },
+    {
+      "tug": "대한호",
+      "vessel": "HARMONY YUN GANG_10",
+      "scheduled_start": 0.0,
+      "earliest_arrival": -712.49,
+      "travel_from": "(37.450647, 126.594899)",
+      "travel_to": "PAL",
+      "travel_min": 7.5,
+      "gap_min": 720.0,
+      "feasible": true
+    },
+    {
+      "tug": "대한호",
+      "vessel": "KOREA VENUS_2",
+      "scheduled_start": 90.0,
+      "earliest_arrival": 65.61,
+      "travel_from": "(37.424337, 126.601657)",
+      "travel_to": "PAL",
+      "travel_min": 23.4,
+      "gap_min": 47.8,
+      "feasible": true
+    },
+    {
+      "tug": "대한호",
+      "vessel": "HYUNDAI EARTH_6",
+      "scheduled_start": 150.0,
+      "earliest_arrival": 174.62,
+      "travel_from": "(37.447154, 126.590818)",
+      "travel_to": "SNCT1",
+      "travel_min": 66.8,
+      "gap_min": 42.2,
+      "feasible": false
+    },
+    {
+      "tug": "대한호",
+      "vessel": "G POSEIDON_5",
+      "scheduled_start": 270.0,
+      "earliest_arrival": 240.93,
+      "travel_from": "(37.336349, 126.619842)",
+      "travel_to": "PAL",
+      "travel_min": 76.9,
+      "gap_min": 106.0,
+      "feasible": true
+    },
+    {
+      "tug": "희양호",
+      "vessel": "HARMONY YUN GANG_10",
+      "scheduled_start": 0.0,
+      "earliest_arrival": -712.49,
+      "travel_from": "(37.450647, 126.594899)",
+      "travel_to": "PAL",
+      "travel_min": 7.5,
+      "gap_min": 720.0,
+      "feasible": true
+    },
+    {
+      "tug": "희양호",
+      "vessel": "KOREA VENUS_2",
+      "scheduled_start": 90.0,
+      "earliest_arrival": 65.61,
+      "travel_from": "(37.424337, 126.601657)",
+      "travel_to": "PAL",
+      "travel_min": 23.4,
+      "gap_min": 47.8,
+      "feasible": true
+    },
+    {
+      "tug": "희양호",
+      "vessel": "KMTC HAIPHONG_12",
+      "scheduled_start": 150.0,
+      "earliest_arrival": 175.8,
+      "travel_from": "(37.447154, 126.590818)",
+      "travel_to": "NPPS",
+      "travel_min": 68.0,
+      "gap_min": 42.2,
+      "feasible": false
+    },
+    {
+      "tug": "희양호",
+      "vessel": "SITC SHANDONG_16",
+      "scheduled_start": 420.0,
+      "earliest_arrival": 166.97,
+      "travel_from": "(37.341551, 126.634736)",
+      "travel_to": "HJIT2",
+      "travel_min": 3.0,
+      "gap_min": 256.0,
+      "feasible": true
+    },
+    {
+      "tug": "한창1호",
+      "vessel": "HARMONY YUN GANG_10",
+      "scheduled_start": 0.0,
+      "earliest_arrival": -712.49,
+      "travel_from": "(37.450647, 126.594899)",
+      "travel_to": "PAL",
+      "travel_min": 7.5,
+      "gap_min": 720.0,
+      "feasible": true
+    },
+    {
+      "tug": "한창1호",
+      "vessel": "수성 1호_7",
+      "scheduled_start": 120.0,
+      "earliest_arrival": 49.83,
+      "travel_from": "(37.424337, 126.601657)",
+      "travel_to": "SAMPYO",
+      "travel_min": 7.7,
+      "gap_min": 77.8,
+      "feasible": true
+    },
+    {
+      "tug": "한창1호",
+      "vessel": "XIN TAI PING_17",
+      "scheduled_start": 420.0,
+      "earliest_arrival": 242.45,
+      "travel_from": "(37.463117, 126.596133)",
+      "travel_to": "NPPS",
+      "travel_min": 76.9,
+      "gap_min": 254.5,
+      "feasible": true
+    },
+    {
+      "tug": "대성호",
+      "vessel": "ARAFURA LILY_15",
+      "scheduled_start": 20.0,
+      "earliest_arrival": -712.49,
+      "travel_from": "(37.450647, 126.594899)",
+      "travel_to": "PAL",
+      "travel_min": 7.5,
+      "gap_min": 740.0,
+      "feasible": true
+    },
+    {
+      "tug": "대성호",
+      "vessel": "KMTC PENANG_14",
+      "scheduled_start": 60.0,
+      "earliest_arrival": 65.14,
+      "travel_from": "(37.421241, 126.596792)",
+      "travel_to": "PAL",
+      "travel_min": 25.1,
+      "gap_min": 20.0,
+      "feasible": false
+    },
+    {
+      "tug": "대성호",
+      "vessel": "HYUNDAI EARTH_6",
+      "scheduled_start": 150.0,
+      "earliest_arrival": 159.93,
+      "travel_from": "(37.438229, 126.595909)",
+      "travel_to": "SNCT1",
+      "travel_min": 60.9,
+      "gap_min": 51.0,
+      "feasible": false
+    },
+    {
+      "tug": "대성호",
+      "vessel": "G POSEIDON_5",
+      "scheduled_start": 270.0,
+      "earliest_arrival": 240.93,
+      "travel_from": "(37.336349, 126.619842)",
+      "travel_to": "PAL",
+      "travel_min": 76.9,
+      "gap_min": 106.0,
+      "feasible": true
+    },
+    {
+      "tug": "쥬피터1호",
+      "vessel": "ARAFURA LILY_15",
+      "scheduled_start": 20.0,
+      "earliest_arrival": -712.49,
+      "travel_from": "(37.450647, 126.594899)",
+      "travel_to": "PAL",
+      "travel_min": 7.5,
+      "gap_min": 740.0,
+      "feasible": true
+    },
+    {
+      "tug": "쥬피터1호",
+      "vessel": "KOREA VENUS_2",
+      "scheduled_start": 90.0,
+      "earliest_arrival": 65.14,
+      "travel_from": "(37.421241, 126.596792)",
+      "travel_to": "PAL",
+      "travel_min": 25.1,
+      "gap_min": 50.0,
+      "feasible": true
+    }
+  ]
+}

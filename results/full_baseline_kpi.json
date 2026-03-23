@@ -1,0 +1,63 @@
+{
+  "n_executed": 336,
+  "n_matched_in_requests": 336,
+  "population_warning": "베이스라인(336건)과 최적화(967건) 모집단 다름. 교집합: 336건 (vessel_name 기준)",
+  "kpi": {
+    "wait_h": 580.0108,
+    "avg_delay_min": 103.57,
+    "max_delay_min": 1223.6
+  },
+  "by_tug": {
+    "I": {
+      "n": 57,
+      "avg_delay_min": 130.92,
+      "total_wait_min": 7462.5
+    },
+    "N": {
+      "n": 54,
+      "avg_delay_min": 118.43,
+      "total_wait_min": 6395.18
+    },
+    "명": {
+      "n": 21,
+      "avg_delay_min": 211.77,
+      "total_wait_min": 4447.1
+    },
+    "M": {
+      "n": 42,
+      "avg_delay_min": 99.64,
+      "total_wait_min": 4184.93
+    },
+    "미": {
+      "n": 50,
+      "avg_delay_min": 82.02,
+      "total_wait_min": 4101.13
+    },
+    "T": {
+      "n": 38,
+      "avg_delay_min": 62.51,
+      "total_wait_min": 2375.4
+    },
+    "H": {
+      "n": 21,
+      "avg_delay_min": 78.08,
+      "total_wait_min": 1639.65
+    },
+    "동": {
+      "n": 15,
+      "avg_delay_min": 100.68,
+      "total_wait_min": 1510.23
+    },
+    "Z": {
+      "n": 15,
+      "avg_delay_min": 95.07,
+      "total_wait_min": 1426.1
+    },
+    "진": {
+      "n": 23,
+      "avg_delay_min": 54.71,
+      "total_wait_min": 1258.42
+    }
+  },
+  "formula": "wait_h = sum(max(0, actual_start - initial_schedule)) / 60"
+}
