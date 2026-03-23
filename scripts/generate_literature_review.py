@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import platform
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -20,6 +21,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     HRFlowable,
     Paragraph,
@@ -28,6 +31,26 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
+
+# ---------------------------------------------------------------------------
+# Korean font registration
+# ---------------------------------------------------------------------------
+
+font_name = "Helvetica"
+font_bold = "Helvetica-Bold"
+try:
+    if platform.system() == "Darwin":
+        for _fp in [
+            "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+            "/Library/Fonts/NanumGothic.ttf",
+        ]:
+            if pathlib.Path(_fp).exists():
+                pdfmetrics.registerFont(TTFont("KorFont", _fp))
+                font_name = "KorFont"
+                font_bold = "KorFont"
+                break
+except Exception:
+    pass
 
 # ---------------------------------------------------------------------------
 # Language selection (set by parse_args, used by t())
@@ -640,7 +663,7 @@ def build_styles() -> dict:
     return {
         "title_ko": ps(
             "TitleKo",
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=18,
             leading=26,
             spaceAfter=4,
@@ -648,7 +671,7 @@ def build_styles() -> dict:
         ),
         "title_en": ps(
             "TitleEn",
-            fontName="Helvetica",
+            fontName=font_name,
             fontSize=13,
             leading=18,
             spaceAfter=6,
@@ -657,7 +680,7 @@ def build_styles() -> dict:
         ),
         "subtitle": ps(
             "Subtitle",
-            fontName="Helvetica",
+            fontName=font_name,
             fontSize=10,
             leading=14,
             spaceAfter=4,
@@ -666,7 +689,7 @@ def build_styles() -> dict:
         ),
         "group_header": ps(
             "GroupHeader",
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=13,
             leading=18,
             spaceBefore=18,
@@ -674,7 +697,7 @@ def build_styles() -> dict:
         ),
         "paper_id": ps(
             "PaperId",
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=10,
             leading=14,
             spaceBefore=10,
@@ -682,7 +705,7 @@ def build_styles() -> dict:
         ),
         "citation": ps(
             "Citation",
-            fontName="Helvetica-Oblique",
+            fontName=font_name,
             fontSize=8,
             leading=12,
             spaceAfter=4,
@@ -690,7 +713,7 @@ def build_styles() -> dict:
         ),
         "label": ps(
             "Label",
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=8,
             leading=12,
             spaceAfter=1,
@@ -698,14 +721,14 @@ def build_styles() -> dict:
         ),
         "body": ps(
             "Body",
-            fontName="Helvetica",
+            fontName=font_name,
             fontSize=8,
             leading=12,
             spaceAfter=4,
         ),
         "relevance": ps(
             "Relevance",
-            fontName="Helvetica",
+            fontName=font_name,
             fontSize=8,
             leading=12,
             spaceAfter=6,
@@ -713,7 +736,7 @@ def build_styles() -> dict:
         ),
         "table_header": ps(
             "TableHeader",
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=7,
             leading=10,
             alignment=1,
@@ -721,20 +744,20 @@ def build_styles() -> dict:
         ),
         "table_cell": ps(
             "TableCell",
-            fontName="Helvetica",
+            fontName=font_name,
             fontSize=7,
             leading=10,
         ),
         "stat_label": ps(
             "StatLabel",
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=9,
             leading=13,
             spaceBefore=4,
         ),
         "stat_body": ps(
             "StatBody",
-            fontName="Helvetica",
+            fontName=font_name,
             fontSize=8,
             leading=12,
             spaceAfter=4,
@@ -829,13 +852,13 @@ def title_page(styles: dict) -> list:
             [
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1A4E8C")),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 0), (-1, 0), font_bold),
                 ("FONTSIZE", (0, 0), (-1, -1), 9),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#F5F5F5")]),
                 ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#E0E0E0")),
-                ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+                ("FONTNAME", (0, -1), (-1, -1), font_bold),
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
                 ("TOPPADDING", (0, 0), (-1, -1), 4),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
@@ -1001,7 +1024,7 @@ def summary_table(papers: list[dict], styles: dict) -> list:
     style_cmds = [
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1A4E8C")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 0), (-1, 0), font_bold),
         ("FONTSIZE", (0, 0), (-1, -1), 7),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -1079,7 +1102,7 @@ def group_stats(papers: list[dict], styles: dict) -> list:
             [
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#333333")),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTNAME", (0, 0), (-1, 0), font_bold),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
                 ("ALIGN", (1, 0), (2, -1), "CENTER"),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
